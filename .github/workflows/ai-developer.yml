@@ -1,0 +1,265 @@
+name: AI Developer Agent
+
+on:
+  issues:
+    types: [opened, labeled]
+  issue_comment:
+    types: [created]
+
+jobs:
+  # Job 1: Analyze issue and decide if AI can handle it
+  analyze:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event.action == 'labeled' && github.event.label.name == 'ai-task') ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@clawbot develop'))
+    outputs:
+      should_develop: ${{ steps.analyze.outputs.should_develop }}
+      task_type: ${{ steps.analyze.outputs.task_type }}
+
+    steps:
+      - name: Analyze Issue
+        id: analyze
+        uses: actions/github-script@v7
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const content = `${issue.title}\n\n${issue.body || ''}`;
+
+            // Simple heuristics for now
+            const isBugFix = /bug|fix|error|crash|broken/i.test(content);
+            const isSimpleFeature = /add|create|implement|simple/i.test(content);
+            const isDocUpdate = /doc|readme|typo|comment/i.test(content);
+
+            const shouldDevelop = isBugFix || isSimpleFeature || isDocUpdate;
+            const taskType = isBugFix ? 'bugfix' : isDocUpdate ? 'docs' : 'feature';
+
+            core.setOutput('should_develop', shouldDevelop);
+            core.setOutput('task_type', taskType);
+
+            // Post acknowledgment
+            if (shouldDevelop) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `🤖 **AI Developer Agent Activated**\n\nI'm analyzing this ${taskType} task and will attempt to create a fix.\n\nPlease wait while I work on it...`
+              });
+            }
+
+  # Job 2: Use Claude to generate code fix
+  develop:
+    needs: analyze
+    if: needs.analyze.outputs.should_develop == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Generate Fix with Claude
+        id: generate
+        uses: actions/github-script@v7
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const https = require('https');
+
+            const issue = context.payload.issue;
+            const taskType = '${{ needs.analyze.outputs.task_type }}';
+
+            // Read relevant files based on issue content
+            const issueContent = `${issue.title}\n\n${issue.body || ''}`;
+
+            // Get file list
+            const getFiles = (dir, files = []) => {
+              const items = fs.readdirSync(dir);
+              for (const item of items) {
+                const fullPath = path.join(dir, item);
+                if (fs.statSync(fullPath).isDirectory()) {
+                  if (!['node_modules', '.git', 'dist', '.next'].includes(item)) {
+                    getFiles(fullPath, files);
+                  }
+                } else if (/\.(ts|tsx|js|jsx|md)$/.test(item)) {
+                  files.push(fullPath);
+                }
+              }
+              return files;
+            };
+
+            // Find relevant files (simplified)
+            const allFiles = getFiles('.');
+            const relevantFiles = allFiles.slice(0, 20); // Limit for context
+
+            let fileContents = '';
+            for (const file of relevantFiles) {
+              try {
+                const content = fs.readFileSync(file, 'utf8');
+                if (content.length < 5000) {
+                  fileContents += `\n--- ${file} ---\n${content}\n`;
+                }
+              } catch (e) {}
+            }
+
+            // Call Claude for code generation
+            const systemPrompt = `You are an expert developer working on Claw Academy.
+            Your task is to analyze the issue and generate a fix.
+
+            Project: Claw Academy - AI agent skill marketplace
+            Stack: Next.js 14, TypeScript, Tailwind CSS, Supabase
+
+            Instructions:
+            1. Analyze the issue description
+            2. Review the relevant code files
+            3. Generate a minimal, focused fix
+            4. Return ONLY a JSON object with this structure:
+            {
+              "files": [
+                {
+                  "path": "path/to/file.ts",
+                  "action": "modify" | "create" | "delete",
+                  "content": "full file content if modify/create"
+                }
+              ],
+              "summary": "Brief description of changes",
+              "commit_message": "fix: description"
+            }`;
+
+            const userMessage = `Issue #${issue.number}: ${issue.title}
+
+            ${issue.body || 'No description'}
+
+            Relevant files:
+            ${fileContents.slice(0, 50000)}
+
+            Generate a fix for this issue.`;
+
+            const requestBody = JSON.stringify({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 4096,
+              system: systemPrompt,
+              messages: [{ role: 'user', content: userMessage }]
+            });
+
+            const response = await new Promise((resolve, reject) => {
+              const req = https.request({
+                hostname: 'api.anthropic.com',
+                path: '/v1/messages',
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': process.env.ANTHROPIC_API_KEY,
+                  'anthropic-version': '2023-06-01'
+                }
+              }, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => resolve(JSON.parse(data)));
+              });
+              req.on('error', reject);
+              req.write(requestBody);
+              req.end();
+            });
+
+            const aiResponse = response.content?.[0]?.text || '{}';
+
+            // Extract JSON from response
+            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              fs.writeFileSync('ai-fix.json', jsonMatch[0]);
+              core.setOutput('has_fix', 'true');
+            } else {
+              core.setOutput('has_fix', 'false');
+            }
+
+      - name: Apply Fix and Create PR
+        if: steps.generate.outputs.has_fix == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Read AI generated fix
+          FIX=$(cat ai-fix.json)
+
+          # Create branch
+          BRANCH="ai-fix/issue-${{ github.event.issue.number }}"
+          git checkout -b $BRANCH
+
+          # Apply changes using Node.js
+          node -e "
+            const fs = require('fs');
+            const fix = JSON.parse(fs.readFileSync('ai-fix.json', 'utf8'));
+
+            for (const file of fix.files || []) {
+              if (file.action === 'delete') {
+                fs.unlinkSync(file.path);
+              } else {
+                const dir = require('path').dirname(file.path);
+                fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(file.path, file.content);
+              }
+            }
+
+            console.log('COMMIT_MSG=' + (fix.commit_message || 'fix: AI generated fix'));
+            console.log('SUMMARY=' + (fix.summary || 'AI generated fix'));
+          " > fix-output.txt
+
+          # Configure git
+          git config user.name "ClawBot"
+          git config user.email "clawbot@clawacademy.dev"
+
+          # Commit and push
+          git add -A
+          git commit -m "$(grep COMMIT_MSG fix-output.txt | cut -d= -f2-)" || exit 0
+          git push origin $BRANCH
+
+          # Create PR
+          gh pr create \
+            --title "🤖 AI Fix for #${{ github.event.issue.number }}" \
+            --body "## AI Generated Fix
+
+            This PR was automatically generated by ClawBot AI Developer.
+
+            **Issue:** #${{ github.event.issue.number }}
+
+            **Summary:** $(grep SUMMARY fix-output.txt | cut -d= -f2-)
+
+            ---
+            ⚠️ **Review Required**: Please review this AI-generated code carefully before merging.
+
+            🤖 Generated by ClawBot" \
+            --base main \
+            --head $BRANCH
+
+      - name: Report Result
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const hasFix = '${{ steps.generate.outputs.has_fix }}' === 'true';
+
+            const message = hasFix
+              ? '✅ **Fix Generated!**\n\nI\'ve created a PR with a potential fix. Please review it carefully before merging.'
+              : '❌ **Could not generate fix**\n\nThis issue may be too complex for automated fixing. A human developer will need to look at it.';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: message
+            });

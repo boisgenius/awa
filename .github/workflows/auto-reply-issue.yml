@@ -1,0 +1,151 @@
+name: ClawBot Auto Reply
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+jobs:
+  auto-reply:
+    runs-on: ubuntu-latest
+    # Don't reply to bot comments to prevent loops
+    if: |
+      (github.event_name == 'issues') ||
+      (github.event_name == 'issue_comment' && github.event.comment.user.login != 'github-actions[bot]')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate AI Response
+        uses: actions/github-script@v7
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          script: |
+            const https = require('https');
+
+            // Get issue/comment content
+            const isIssue = context.eventName === 'issues';
+            const issue = context.payload.issue;
+            const comment = context.payload.comment;
+
+            const userMessage = isIssue
+              ? `New Issue: ${issue.title}\n\n${issue.body || 'No description'}`
+              : `Comment on "${issue.title}":\n\n${comment.body}`;
+
+            // System prompt for ClawBot
+            const systemPrompt = `You are ClawBot, the AI assistant for Claw Academy - an AI agent education platform and skill marketplace.
+
+            Your responsibilities:
+            1. Help users with questions about the project
+            2. Provide guidance on contributing
+            3. Acknowledge bug reports and feature requests
+            4. Be friendly and helpful
+
+            Project context:
+            - Claw Academy is a marketplace for AI agent skills
+            - Built with Next.js 14, TypeScript, Tailwind CSS
+            - Uses Supabase for database, Solana for payments
+            - Packages: @clawacademy/auth, @clawacademy/skills, @clawacademy/agent-sdk, etc.
+
+            Response guidelines:
+            - Keep responses concise but helpful
+            - Use markdown formatting
+            - For bugs: acknowledge and ask for reproduction steps if missing
+            - For features: thank them and explain the review process
+            - For questions: provide helpful answers or point to documentation
+            - Always be encouraging to contributors
+
+            Respond in the same language as the user's message.`;
+
+            // Call Claude API
+            const requestBody = JSON.stringify({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 1024,
+              system: systemPrompt,
+              messages: [{ role: 'user', content: userMessage }]
+            });
+
+            const response = await new Promise((resolve, reject) => {
+              const req = https.request({
+                hostname: 'api.anthropic.com',
+                path: '/v1/messages',
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': process.env.ANTHROPIC_API_KEY,
+                  'anthropic-version': '2023-06-01'
+                }
+              }, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => resolve(JSON.parse(data)));
+              });
+              req.on('error', reject);
+              req.write(requestBody);
+              req.end();
+            });
+
+            const aiResponse = response.content?.[0]?.text || 'Thank you for your submission! Our team will review it shortly.';
+
+            // Post comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: aiResponse
+            });
+
+      - name: Auto Label Issues
+        if: github.event_name == 'issues' && github.event.action == 'opened'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const content = title + ' ' + body;
+
+            const labels = [];
+
+            // Detect issue type
+            if (content.includes('bug') || content.includes('error') || content.includes('crash') || content.includes('fix')) {
+              labels.push('bug');
+            }
+            if (content.includes('feature') || content.includes('enhancement') || content.includes('add') || content.includes('request')) {
+              labels.push('enhancement');
+            }
+            if (content.includes('question') || content.includes('how') || content.includes('help') || content.includes('?')) {
+              labels.push('question');
+            }
+            if (content.includes('doc') || content.includes('readme') || content.includes('documentation')) {
+              labels.push('documentation');
+            }
+
+            // Detect component
+            if (content.includes('auth') || content.includes('login') || content.includes('wallet')) {
+              labels.push('auth');
+            }
+            if (content.includes('skill') || content.includes('marketplace')) {
+              labels.push('skills');
+            }
+            if (content.includes('agent') || content.includes('sdk')) {
+              labels.push('agent-sdk');
+            }
+            if (content.includes('payment') || content.includes('solana') || content.includes('purchase')) {
+              labels.push('payment');
+            }
+
+            // Always add needs-triage
+            labels.push('needs-triage');
+
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: labels
+              });
+            }
