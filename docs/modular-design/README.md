@@ -1,6 +1,8 @@
 # AWA 模块化架构设计
 
-> 单仓库 + 模块化目录结构，适配 Claude Code 开发
+> Next.js 全栈 + 模块化目录结构，适配 Claude Code 开发
+>
+> **注意**: 业务逻辑模块位于 `src/lib/` 目录下，不再使用独立的 packages/ 结构
 
 ## 设计理念
 
@@ -23,7 +25,7 @@
 │                           Client Layer                                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────────┐ │
 │  │   Browser    │  │   Mobile     │  │      OpenClaw Agent            │ │
-│  │  (Next.js)   │  │   (PWA)      │  │     (@awa/agent-sdk)           │ │
+│  │  (Next.js)   │  │   (PWA)      │  │     (agent-sdk)                │ │
 │  └──────┬───────┘  └──────┬───────┘  └───────────────┬────────────────┘ │
 └─────────┼─────────────────┼──────────────────────────┼──────────────────┘
           │                 │                          │
@@ -37,7 +39,7 @@
 │                                 │                                        │
 │                                 ▼                                        │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                      Core Packages (@awa/*)                         │ │
+│  │                      Core Modules (src/lib/*)                       │ │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │ │
 │  │  │   auth   │ │  skills  │ │ ranking  │ │  rating  │ │ payment  │ │ │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │ │
@@ -86,17 +88,17 @@
 
 ---
 
-## 包清单
+## 模块清单
 
-| 包名 | 职责 | 优先级 | 文档 |
-|------|------|--------|------|
-| `@awa/auth` | Agent API Key 认证 | P0 | [auth.md](./packages/auth.md) |
-| `@awa/skills` | 技能 CRUD + 版本管理 | P0 | [skills.md](./packages/skills.md) |
-| `@awa/ranking` | 技能排序算法 | P1 | [ranking.md](./packages/ranking.md) |
-| `@awa/rating` | 评分系统 | P1 | [rating.md](./packages/rating.md) |
-| `@awa/payment` | Agent 自动支付 | P0 | [payment.md](./packages/payment.md) |
-| `@awa/rate-limiter` | API 限流 | P1 | [rate-limiter.md](./packages/rate-limiter.md) |
-| `@awa/agent-sdk` | Agent 开发 SDK | P0 | [agent-sdk.md](./packages/agent-sdk.md) |
+| 模块 | 路径 | 职责 | 优先级 | 文档 |
+|------|------|------|--------|------|
+| auth | `src/lib/auth/` | Agent API Key 认证 | P0 | [auth.md](./packages/auth.md) |
+| skills | `src/lib/skills/` | 技能 CRUD + 版本管理 | P0 | [skills.md](./packages/skills.md) |
+| ranking | `src/lib/ranking/` | 技能排序算法 | P1 | [ranking.md](./packages/ranking.md) |
+| rating | `src/lib/rating/` | 评分系统 | P1 | [rating.md](./packages/rating.md) |
+| payment | `src/lib/payment/` | Agent 自动支付 | P0 | [payment.md](./packages/payment.md) |
+| rate-limiter | `src/lib/rate-limiter/` | API 限流 | P1 | [rate-limiter.md](./packages/rate-limiter.md) |
+| agent-sdk | `src/lib/agent-sdk/` | Agent 开发 SDK | P0 | [agent-sdk.md](./packages/agent-sdk.md) |
 
 ---
 
@@ -104,69 +106,73 @@
 
 ```
 awa/                             # 当前仓库
-├── apps/
-│   └── web/                     # Next.js 前端
-│       ├── src/
-│       │   ├── app/
-│       │   ├── components/
-│       │   └── ...
-│       └── package.json
-│
-├── packages/                    # 核心包（Monorepo）
-│   ├── auth/                    # @awa/auth
-│   │   ├── src/
+├── src/
+│   ├── app/                     # Next.js App Router
+│   │   ├── api/                 # API Routes
+│   │   ├── (marketing)/         # 营销页面
+│   │   └── (dashboard)/         # 仪表板页面
+│   │
+│   ├── components/              # UI 组件
+│   │   ├── ui/
+│   │   ├── layout/
+│   │   └── features/
+│   │
+│   ├── lib/                     # 核心业务逻辑模块
+│   │   ├── auth/                # Agent API Key 认证
 │   │   │   ├── index.ts
-│   │   │   ├── agent-auth.ts    # Agent API Key 认证
+│   │   │   ├── agent-auth.ts
 │   │   │   ├── middleware.ts
 │   │   │   └── types.ts
-│   │   ├── tests/
-│   │   └── package.json
+│   │   ├── skills/              # 技能管理
+│   │   ├── ranking/             # 排序算法
+│   │   ├── rating/              # 评分系统
+│   │   ├── payment/             # Agent 自动支付
+│   │   ├── rate-limiter/        # API 限流
+│   │   ├── agent-sdk/           # Agent SDK
+│   │   ├── supabase/            # 数据库客户端
+│   │   └── solana/              # Solana 客户端
 │   │
-│   ├── skills/                  # @awa/skills
-│   ├── ranking/                 # @awa/ranking
-│   ├── rating/                  # @awa/rating
-│   ├── payment/                 # @awa/payment (Agent 自动支付)
-│   ├── rate-limiter/            # @awa/rate-limiter
-│   └── agent-sdk/               # @awa/agent-sdk
+│   ├── hooks/                   # 自定义 Hooks
+│   ├── stores/                  # Zustand 状态
+│   └── types/                   # 全局类型
 │
 ├── docs/                        # 文档
-├── turbo.json                   # Turborepo 配置
-├── pnpm-workspace.yaml          # pnpm workspace
-└── package.json                 # 根 package.json
+└── package.json                 # 项目配置
 ```
 
 ---
 
-## Monorepo 工具
+## 工具
 
 | 工具 | 说明 |
 |------|------|
-| **Turborepo** | 构建系统，缓存优化 |
-| **pnpm** | 包管理，节省磁盘空间 |
+| **pnpm** | 包管理器 |
+| **Vitest** | 单元测试框架 |
+| **Playwright** | E2E 测试框架 |
 
 ---
 
-## 依赖关系
+## 模块依赖关系
 
 ```
-@awa/agent-sdk
-    └── @awa/auth (API Key 验证)
+lib/agent-sdk
+    └── lib/auth (API Key 验证)
 
-@awa/skills
-    ├── @awa/rating (评分数据)
-    └── @awa/ranking (排序)
+lib/skills
+    ├── lib/rating (评分数据)
+    └── lib/ranking (排序)
 
-@awa/payment
-    ├── @awa/auth (Agent 验证)
-    └── @awa/skills (购买技能)
+lib/payment
+    ├── lib/auth (Agent 验证)
+    └── lib/skills (购买技能)
 
-awa-web
-    ├── @awa/auth
-    ├── @awa/skills
-    ├── @awa/ranking
-    ├── @awa/rating
-    ├── @awa/payment
-    └── @awa/rate-limiter
+app/api/*
+    ├── lib/auth
+    ├── lib/skills
+    ├── lib/ranking
+    ├── lib/rating
+    ├── lib/payment
+    └── lib/rate-limiter
 ```
 
 ---
@@ -193,8 +199,8 @@ class InMemorySkillAdapter implements SkillAdapter { }
 ### 2. Next.js 中间件
 
 ```typescript
-import { authMiddleware } from '@awa/auth';
-import { rateLimitMiddleware } from '@awa/rate-limiter';
+import { authMiddleware } from '@/lib/auth';
+import { rateLimitMiddleware } from '@/lib/rate-limiter';
 
 // Next.js API Route
 export const GET = authMiddleware(async (req, { agent }) => {
@@ -219,7 +225,7 @@ export type SkillCategory = 'research' | 'finance' | 'coding' | ...;
 
 ## 开发流程
 
-### 初始化 Monorepo
+### 本地开发
 
 ```bash
 # 安装 pnpm
@@ -231,7 +237,10 @@ pnpm install
 # 开发
 pnpm dev
 
-# 测试
+# 测试 (TDD Watch 模式)
+pnpm test:watch
+
+# 测试 (单次运行)
 pnpm test
 
 # 构建
@@ -277,9 +286,10 @@ jobs:
 
 ## 下一步
 
-1. [ ] 初始化 Turborepo 项目
-2. [ ] 实现 @awa/auth
-3. [ ] 实现 @awa/skills
-4. [ ] 实现 @awa/payment
-5. [ ] 实现 @awa/agent-sdk
-6. [ ] 实现应用层
+1. [ ] 初始化 Next.js 项目
+2. [ ] 配置 TDD 测试环境
+3. [ ] 实现 `src/lib/auth/`
+4. [ ] 实现 `src/lib/skills/`
+5. [ ] 实现 `src/lib/payment/`
+6. [ ] 实现 `src/lib/agent-sdk/`
+7. [ ] 实现 API Routes 和页面
