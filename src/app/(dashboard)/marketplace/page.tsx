@@ -5,12 +5,12 @@ import Link from 'next/link';
 
 // Skills data from prototype
 const skills = [
-  { id: 1, name: "Research Master Pro", author: "ClawCore", emoji: "🔬", gradient: "linear-gradient(135deg, #E40F3A, #770524)", description: "Advanced research techniques including web scraping, data synthesis, and academic citations.", status: "live", priority: "high", price: 2.5, rating: 4.8, downloads: 1250, verified: true, starred: false, features: ["Web Scraping", "Data Synthesis", "Citations"] },
-  { id: 2, name: "Trading Strategist", author: "DeFiMaster", emoji: "📈", gradient: "linear-gradient(135deg, #00FF88, #00CC6A)", description: "Comprehensive crypto trading strategies with risk management and on-chain analysis.", status: "live", priority: "high", price: 5.0, rating: 4.9, downloads: 890, verified: true, starred: true, features: ["DeFi", "Risk Mgmt", "On-chain"] },
-  { id: 3, name: "Code Assistant v3", author: "DevOpsAgent", emoji: "💻", gradient: "linear-gradient(135deg, #7C3AED, #A855F7)", description: "Full-stack development skills including testing, deployment, and code review.", status: "live", priority: "medium", price: 3.0, rating: 4.7, downloads: 2100, verified: true, starred: false, features: ["Full-stack", "Testing", "CI/CD"] },
-  { id: 4, name: "Security Guardian", author: "SecureAI", emoji: "🛡️", gradient: "linear-gradient(135deg, #FF6B00, #FF8533)", description: "Prompt injection defense, security auditing, and vulnerability scanning.", status: "live", priority: "high", price: 4.0, rating: 4.9, downloads: 1800, verified: true, starred: false, features: ["Injection Defense", "Auditing"] },
-  { id: 5, name: "Content Creator Kit", author: "CreativeAI", emoji: "🎨", gradient: "linear-gradient(135deg, #FFD93D, #FFC107)", description: "Social media content generation, image prompts, and video scripts.", status: "live", priority: "emerging", price: 2.0, rating: 4.6, downloads: 920, verified: true, starred: false, features: ["Social Media", "Scripts"] },
-  { id: 6, name: "Email Composer Pro", author: "CommBot", emoji: "✉️", gradient: "linear-gradient(135deg, #3B82F6, #60A5FA)", description: "Professional email writing with tone adaptation and smart follow-ups.", status: "dev", priority: "medium", price: 1.5, rating: 4.5, downloads: 650, verified: false, starred: false, features: ["Tone Analysis", "Templates"] },
+  { id: 1, name: "Research Master Pro", author: "ClawCore", emoji: "🔬", gradient: "linear-gradient(135deg, #E40F3A, #770524)", description: "Advanced research techniques including web scraping, data synthesis, and academic citations.", status: "live", priority: "high", rating: 4.8, downloads: 1250, verified: true, starred: false, features: ["Web Scraping", "Data Synthesis", "Citations"] },
+  { id: 2, name: "Trading Strategist", author: "DeFiMaster", emoji: "📈", gradient: "linear-gradient(135deg, #00FF88, #00CC6A)", description: "Comprehensive crypto trading strategies with risk management and on-chain analysis.", status: "live", priority: "high", rating: 4.9, downloads: 890, verified: true, starred: true, features: ["DeFi", "Risk Mgmt", "On-chain"] },
+  { id: 3, name: "Code Assistant v3", author: "DevOpsAgent", emoji: "💻", gradient: "linear-gradient(135deg, #7C3AED, #A855F7)", description: "Full-stack development skills including testing, deployment, and code review.", status: "live", priority: "medium", rating: 4.7, downloads: 2100, verified: true, starred: false, features: ["Full-stack", "Testing", "CI/CD"] },
+  { id: 4, name: "Security Guardian", author: "SecureAI", emoji: "🛡️", gradient: "linear-gradient(135deg, #FF6B00, #FF8533)", description: "Prompt injection defense, security auditing, and vulnerability scanning.", status: "live", priority: "high", rating: 4.9, downloads: 1800, verified: true, starred: false, features: ["Injection Defense", "Auditing"] },
+  { id: 5, name: "Content Creator Kit", author: "CreativeAI", emoji: "🎨", gradient: "linear-gradient(135deg, #FFD93D, #FFC107)", description: "Social media content generation, image prompts, and video scripts.", status: "live", priority: "emerging", rating: 4.6, downloads: 920, verified: true, starred: false, features: ["Social Media", "Scripts"] },
+  { id: 6, name: "Email Composer Pro", author: "CommBot", emoji: "✉️", gradient: "linear-gradient(135deg, #3B82F6, #60A5FA)", description: "Professional email writing with tone adaptation and smart follow-ups.", status: "dev", priority: "medium", rating: 4.5, downloads: 650, verified: false, starred: false, features: ["Tone Analysis", "Templates"] },
 ];
 
 const categories = [
@@ -56,14 +56,6 @@ export default function MarketplacePage() {
           <div className="stat-value">12,847 <span className="change positive">+24.2%</span></div>
         </div>
         <div className="stat">
-          <div className="stat-label">Volume 24H</div>
-          <div className="stat-value">847.2 <span className="unit">SOL</span> <span className="change negative">-3.2%</span></div>
-        </div>
-        <div className="stat">
-          <div className="stat-label">Floor Price</div>
-          <div className="stat-value">0.5 <span className="unit">SOL</span> <span className="change positive">+5.1%</span></div>
-        </div>
-        <div className="stat">
           <div className="stat-label">Verified Creators</div>
           <div className="stat-value">89 <span className="change positive">+12</span></div>
         </div>
@@ -85,8 +77,8 @@ export default function MarketplacePage() {
         <select className="sort-select">
           <option>Sort: Trending</option>
           <option>Sort: Newest</option>
-          <option>Sort: Price Low</option>
-          <option>Sort: Price High</option>
+          <option>Sort: Most Downloads</option>
+          <option>Sort: Highest Rated</option>
         </select>
       </div>
 
@@ -138,7 +130,6 @@ export default function MarketplacePage() {
                   <span className="skill-stat"><span className="star">★</span> {skill.rating}</span>
                   <span className="skill-stat">↓ {skill.downloads.toLocaleString()}</span>
                 </div>
-                <div className="skill-price">{skill.price} SOL</div>
               </div>
             </article>
           );

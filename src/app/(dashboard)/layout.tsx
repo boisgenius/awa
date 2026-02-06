@@ -80,18 +80,6 @@ export default function DashboardLayout({
             </div>
           </nav>
 
-          <div className="token-widget">
-            <div className="token-header">
-              <span>⚡</span>
-              <span className="token-name">$AWA</span>
-              <span className="token-change">+12.4%</span>
-            </div>
-            <div className="token-price">$0.0847</div>
-            <div className="token-stats">
-              <span>MCap <span className="value">$8.4M</span></span>
-              <span>Vol 24h <span className="value">$847K</span></span>
-            </div>
-          </div>
         </aside>
 
         {/* Main Content */}
@@ -117,7 +105,6 @@ export default function DashboardLayout({
                 <input type="text" placeholder="Search skills..." />
                 <span className="kbd">⌘K</span>
               </div>
-              <button className="connect-btn">Connect</button>
             </div>
           </nav>
 
