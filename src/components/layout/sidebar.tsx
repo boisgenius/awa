@@ -72,7 +72,7 @@ function NavSection({ title, items }: { title: string; items: NavItem[] }) {
 
 export function Sidebar() {
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-sidebar border-r border-border-default bg-bg-sidebar flex flex-col z-50">
+    <aside className="fixed left-0 top-[42px] h-[calc(100vh-42px)] w-sidebar border-r border-border-default bg-bg-sidebar flex flex-col z-[100]">
       {/* Logo */}
       <div className="px-5 py-4 border-b border-border-default flex items-center gap-3">
         <span className="text-2xl">🦞</span>

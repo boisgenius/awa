@@ -25,7 +25,7 @@ export function Header({ showSearch = true }: HeaderProps) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border-default bg-[rgba(10,10,12,0.95)] backdrop-blur-xl">
+    <header className="sticky top-[42px] z-[99] w-full border-b border-border-default bg-[rgba(10,10,12,0.95)] backdrop-blur-xl">
       <div className="flex h-16 items-center justify-between px-6">
         {/* Nav Tabs */}
         <nav className="hidden md:flex items-center gap-2">

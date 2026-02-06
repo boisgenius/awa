@@ -21,8 +21,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           {
             // Primary - crimson button
             primary: [
-              'bg-crimson text-white',
-              'hover:bg-crimson-light hover:shadow-[0_0_20px_rgba(228,15,58,0.4)]',
+              'bg-crimson text-white font-semibold',
+              'hover:shadow-[0_0_20px_rgba(228,15,58,0.4)] hover:-translate-y-0.5',
               'active:bg-burgundy',
             ],
             // Secondary - teal/green accent
@@ -45,7 +45,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           // Sizes
           {
             sm: 'h-8 px-3 text-sm gap-1.5',
-            md: 'h-10 px-4 text-sm gap-2',
+            md: 'py-3 px-5 text-sm gap-2',
             lg: 'h-12 px-6 text-base gap-2',
           }[size],
 

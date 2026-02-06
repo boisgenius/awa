@@ -10,7 +10,7 @@ export default function DashboardLayout({
       <AnnouncementBar />
       <Header />
       <Sidebar />
-      <main className="ml-sidebar pt-16 flex-1">
+      <main className="ml-sidebar pt-[106px] flex-1">
         <div className="p-6">
           {children}
         </div>

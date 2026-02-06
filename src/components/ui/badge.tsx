@@ -9,19 +9,19 @@ function Badge({ className, variant = 'default', ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center rounded px-3 py-1 text-[10px] font-semibold uppercase',
         'border transition-colors',
         {
-          // Live status - green
-          live: 'border-accent-secondary/50 text-accent-secondary bg-accent-secondary/10',
-          // Dev status - yellow
-          dev: 'border-accent-warning/50 text-accent-warning bg-accent-warning/10',
-          // High priority - crimson
-          high: 'border-crimson/50 text-crimson bg-crimson/10',
-          // Medium priority
-          medium: 'border-accent-info/50 text-accent-info bg-accent-info/10',
-          // Emerging
-          emerging: 'border-accent-teal/50 text-accent-teal bg-accent-teal/10',
+          // Live status - green with background
+          live: 'border-accent-secondary/30 text-accent-secondary bg-accent-secondary/10',
+          // Dev status - yellow with background
+          dev: 'border-accent-warning/30 text-accent-warning bg-accent-warning/10',
+          // High priority - crimson outline only
+          high: 'border-crimson text-crimson bg-transparent',
+          // Medium priority - warning outline only
+          medium: 'border-accent-warning text-accent-warning bg-transparent',
+          // Emerging - info outline only
+          emerging: 'border-accent-info text-accent-info bg-transparent',
           // Default
           default: 'border-border-default text-text-secondary bg-bg-tertiary',
         }[variant],
