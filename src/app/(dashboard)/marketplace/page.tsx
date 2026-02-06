@@ -1,205 +1,154 @@
 'use client';
 
 import { useState } from 'react';
-import { SkillGrid, FilterBar, StatsBar } from '@/components/features';
-import type { Skill, SkillCategory } from '@/lib/skills';
+import Link from 'next/link';
 
-// Mock data for development
-const mockSkills: Skill[] = [
-  {
-    id: '1',
-    name: 'Web Research Pro',
-    slug: 'web-research-pro',
-    authorId: 'ClawCore',
-    description: 'Advanced web research and information gathering capabilities with multi-source verification.',
-    category: 'research',
-    status: 'live',
-    priority: 'high',
-    price: 0.5,
-    rating: 4.8,
-    ratingCount: 156,
-    downloads: 2340,
-    verified: true,
-    features: ['Search', 'Summarize', 'Extract', 'Verify'],
-    content: '',
-    version: '2.1.0',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '2',
-    name: 'Code Review Assistant',
-    slug: 'code-review-assistant',
-    authorId: 'DevOpsAgent',
-    description: 'Automated code review with best practices enforcement and security vulnerability detection.',
-    category: 'coding',
-    status: 'live',
-    priority: 'high',
-    price: 0.8,
-    rating: 4.9,
-    ratingCount: 89,
-    downloads: 1560,
-    verified: true,
-    features: ['Review', 'Security', 'Performance', 'Style'],
-    content: '',
-    version: '1.5.0',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '3',
-    name: 'Financial Analyst',
-    slug: 'financial-analyst',
-    authorId: 'DeFiMaster',
-    description: 'Comprehensive financial analysis including market trends, risk assessment, and portfolio optimization.',
-    category: 'finance',
-    status: 'live',
-    priority: 'medium',
-    price: 1.2,
-    rating: 4.6,
-    ratingCount: 67,
-    downloads: 890,
-    verified: true,
-    features: ['Analysis', 'Forecasting', 'Risk Assessment'],
-    content: '',
-    version: '1.2.0',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '4',
-    name: 'Security Scanner',
-    slug: 'security-scanner',
-    authorId: 'SecureAI',
-    description: 'Automated security vulnerability scanning and penetration testing toolkit.',
-    category: 'security',
-    status: 'dev',
-    priority: 'emerging',
-    price: 0.6,
-    rating: 4.3,
-    ratingCount: 23,
-    downloads: 340,
-    verified: false,
-    features: ['Scan', 'Pentest', 'Report'],
-    content: '',
-    version: '0.9.0',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '5',
-    name: 'Creative Writer',
-    slug: 'creative-writer',
-    authorId: 'CreativeAI',
-    description: 'AI-powered creative writing assistant for stories, scripts, and marketing copy.',
-    category: 'creative',
-    status: 'live',
-    priority: 'medium',
-    price: 0.4,
-    rating: 4.7,
-    ratingCount: 112,
-    downloads: 1890,
-    verified: true,
-    features: ['Stories', 'Scripts', 'Copy', 'Editing'],
-    content: '',
-    version: '2.0.0',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: '6',
-    name: 'Communication Hub',
-    slug: 'communication-hub',
-    authorId: 'CommBot',
-    description: 'Multi-platform communication management with automated responses and scheduling.',
-    category: 'comms',
-    status: 'live',
-    priority: 'high',
-    price: 0.7,
-    rating: 4.5,
-    ratingCount: 78,
-    downloads: 1200,
-    verified: true,
-    features: ['Email', 'Chat', 'Schedule', 'Templates'],
-    content: '',
-    version: '1.8.0',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
+// Skills data from prototype
+const skills = [
+  { id: 1, name: "Research Master Pro", author: "ClawCore", emoji: "🔬", gradient: "linear-gradient(135deg, #E40F3A, #770524)", description: "Advanced research techniques including web scraping, data synthesis, and academic citations.", status: "live", priority: "high", price: 2.5, rating: 4.8, downloads: 1250, verified: true, starred: false, features: ["Web Scraping", "Data Synthesis", "Citations"] },
+  { id: 2, name: "Trading Strategist", author: "DeFiMaster", emoji: "📈", gradient: "linear-gradient(135deg, #00FF88, #00CC6A)", description: "Comprehensive crypto trading strategies with risk management and on-chain analysis.", status: "live", priority: "high", price: 5.0, rating: 4.9, downloads: 890, verified: true, starred: true, features: ["DeFi", "Risk Mgmt", "On-chain"] },
+  { id: 3, name: "Code Assistant v3", author: "DevOpsAgent", emoji: "💻", gradient: "linear-gradient(135deg, #7C3AED, #A855F7)", description: "Full-stack development skills including testing, deployment, and code review.", status: "live", priority: "medium", price: 3.0, rating: 4.7, downloads: 2100, verified: true, starred: false, features: ["Full-stack", "Testing", "CI/CD"] },
+  { id: 4, name: "Security Guardian", author: "SecureAI", emoji: "🛡️", gradient: "linear-gradient(135deg, #FF6B00, #FF8533)", description: "Prompt injection defense, security auditing, and vulnerability scanning.", status: "live", priority: "high", price: 4.0, rating: 4.9, downloads: 1800, verified: true, starred: false, features: ["Injection Defense", "Auditing"] },
+  { id: 5, name: "Content Creator Kit", author: "CreativeAI", emoji: "🎨", gradient: "linear-gradient(135deg, #FFD93D, #FFC107)", description: "Social media content generation, image prompts, and video scripts.", status: "live", priority: "emerging", price: 2.0, rating: 4.6, downloads: 920, verified: true, starred: false, features: ["Social Media", "Scripts"] },
+  { id: 6, name: "Email Composer Pro", author: "CommBot", emoji: "✉️", gradient: "linear-gradient(135deg, #3B82F6, #60A5FA)", description: "Professional email writing with tone adaptation and smart follow-ups.", status: "dev", priority: "medium", price: 1.5, rating: 4.5, downloads: 650, verified: false, starred: false, features: ["Tone Analysis", "Templates"] },
+];
+
+const categories = [
+  { id: 'all', label: 'All', count: 142 },
+  { id: 'research', label: '🔬 Research', count: 18 },
+  { id: 'finance', label: '📈 Finance', count: 24 },
+  { id: 'coding', label: '💻 Coding', count: 35 },
+  { id: 'security', label: '🛡️ Security', count: 12 },
+  { id: 'creative', label: '🎨 Creative', count: 28 },
 ];
 
 export default function MarketplacePage() {
-  const [category, setCategory] = useState<SkillCategory | 'all'>('all');
-  const [sortBy, setSortBy] = useState('trending');
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [starredSkills, setStarredSkills] = useState<number[]>([2]); // Trading Strategist is starred by default
 
-  // Filter skills
-  const filteredSkills = mockSkills.filter((skill) => {
-    if (category === 'all') return true;
-    return skill.category === category;
-  });
-
-  // Sort skills
-  const sortedSkills = [...filteredSkills].sort((a, b) => {
-    switch (sortBy) {
-      case 'newest':
-        return b.createdAt.getTime() - a.createdAt.getTime();
-      case 'rating':
-        return b.rating - a.rating;
-      case 'downloads':
-        return b.downloads - a.downloads;
-      default: // trending
-        return b.downloads * b.rating - a.downloads * a.rating;
-    }
-  });
+  const toggleStar = (id: number) => {
+    setStarredSkills(prev =>
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
+  };
 
   return (
-    <div>
-      {/* Hero Section */}
-      <div className="relative mb-6 overflow-hidden">
-        {/* Glow Effect */}
-        <div
-          className="absolute -top-[150px] -right-[150px] w-[500px] h-[500px] pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle, rgba(228, 15, 58, 0.2) 0%, transparent 70%)',
-          }}
-        />
-
-        {/* Badge */}
-        <span className="inline-block bg-crimson/15 border border-crimson text-crimson px-4 py-2 rounded-full text-xs font-medium mb-5">
-          Powered by OpenClaw
-        </span>
-
-        {/* Title */}
-        <h1 className="text-[clamp(28px,4vw,40px)] font-bold mb-3 font-sans leading-tight">
-          Train Your AI Agent <span className="text-crimson">Like Never Before</span>
-        </h1>
-
-        {/* Description */}
-        <p className="text-base text-text-secondary max-w-[600px] leading-relaxed">
+    <section className="marketplace-section">
+      {/* Hero */}
+      <div className="marketplace-hero">
+        <span className="badge-powered">Powered by OpenClaw</span>
+        <h2 className="marketplace-title">
+          Train Your AI Agent <span className="highlight">Like Never Before</span>
+        </h2>
+        <p className="marketplace-desc">
           The premier marketplace for AI agent skills, prompts, and educational modules.
         </p>
       </div>
 
       {/* Stats Bar */}
-      <StatsBar />
+      <div className="stats-bar">
+        <div className="stat">
+          <div className="stat-label">Total Skills</div>
+          <div className="stat-value">142 <span className="change positive">+8</span></div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Active Agents</div>
+          <div className="stat-value">12,847 <span className="change positive">+24.2%</span></div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Volume 24H</div>
+          <div className="stat-value">847.2 <span className="unit">SOL</span> <span className="change negative">-3.2%</span></div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Floor Price</div>
+          <div className="stat-value">0.5 <span className="unit">SOL</span> <span className="change positive">+5.1%</span></div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Verified Creators</div>
+          <div className="stat-value">89 <span className="change positive">+12</span></div>
+        </div>
+      </div>
 
       {/* Filters */}
-      <FilterBar
-        selectedCategory={category}
-        onCategoryChange={setCategory}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-      />
+      <div className="filters-bar">
+        <div className="filter-pills">
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              className={`filter-pill ${activeCategory === cat.id ? 'active' : ''}`}
+              onClick={() => setActiveCategory(cat.id)}
+            >
+              {cat.label} <span className="count">{cat.count}</span>
+            </button>
+          ))}
+        </div>
+        <select className="sort-select">
+          <option>Sort: Trending</option>
+          <option>Sort: Newest</option>
+          <option>Sort: Price Low</option>
+          <option>Sort: Price High</option>
+        </select>
+      </div>
 
       {/* Skills Grid */}
-      <SkillGrid skills={sortedSkills} />
+      <div className="skills-grid">
+        {skills.map(skill => {
+          const isStarred = starredSkills.includes(skill.id);
+          const statusClass = skill.status === 'live' ? 'badge-live' : 'badge-dev';
+          const statusText = skill.status === 'live' ? 'LIVE' : 'IN DEV';
+          let priorityClass = 'badge-medium';
+          if (skill.priority === 'high') priorityClass = 'badge-high';
+          if (skill.priority === 'emerging') priorityClass = 'badge-emerging';
 
-      {/* Load More Button */}
-      <div className="text-center py-5 mb-6">
-        <button className="bg-bg-secondary border border-border-default text-text-secondary px-8 py-4 rounded-lg text-sm font-medium transition-all hover:border-crimson hover:text-crimson">
-          Load More Skills ↓
-        </button>
+          return (
+            <article key={skill.id} className="skill-card">
+              <div className="skill-header">
+                <div className="skill-icon" style={{ background: skill.gradient }}>
+                  {skill.emoji}
+                </div>
+                <div className="skill-actions">
+                  <button
+                    className={`icon-btn ${isStarred ? 'starred' : ''}`}
+                    onClick={() => toggleStar(skill.id)}
+                  >
+                    {isStarred ? '★' : '☆'}
+                  </button>
+                  <button className="icon-btn">↗</button>
+                </div>
+              </div>
+              <Link href={`/skills/${skill.id}`}>
+                <h3 className="skill-title">
+                  {skill.name}
+                  {skill.verified && <span className="verified-badge">✓</span>}
+                </h3>
+              </Link>
+              <span className="skill-author">by {skill.author}</span>
+              <p className="skill-desc">{skill.description}</p>
+              <div className="skill-badges">
+                <span className={`badge ${statusClass}`}>{statusText}</span>
+                <span className={`badge ${priorityClass}`}>{skill.priority.toUpperCase()}</span>
+              </div>
+              <div className="skill-features">
+                {skill.features.map(f => (
+                  <span key={f} className="feature-tag">{f}</span>
+                ))}
+              </div>
+              <div className="skill-footer">
+                <div className="skill-stats">
+                  <span className="skill-stat"><span className="star">★</span> {skill.rating}</span>
+                  <span className="skill-stat">↓ {skill.downloads.toLocaleString()}</span>
+                </div>
+                <div className="skill-price">{skill.price} SOL</div>
+              </div>
+            </article>
+          );
+        })}
       </div>
-    </div>
+
+      {/* Load More */}
+      <div className="load-more">
+        <button className="load-more-btn">Load More Skills ↓</button>
+      </div>
+    </section>
   );
 }
