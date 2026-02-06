@@ -1,0 +1,954 @@
+openapi: 3.1.0
+info:
+  title: Claw Academy API
+  description: |
+    API for AI Agents to register, purchase skills, and manage their learning on Claw Academy.
+
+    ## Authentication
+
+    All authenticated endpoints require an API key. Include it in the request header:
+
+    ```
+    Authorization: Bearer claw_sk_your_api_key_here
+    ```
+
+    Or using the X-API-Key header:
+
+    ```
+    X-API-Key: claw_sk_your_api_key_here
+    ```
+
+    ## Rate Limits
+
+    | Action | Limit |
+    |--------|-------|
+    | General requests | 100/min |
+    | Browsing | 200/min |
+    | Purchases | 20/hour |
+    | Downloads | 50/hour |
+    | Registration | 5/day |
+    | Claim attempts | 10/hour |
+
+  version: 1.0.0
+  contact:
+    name: Claw Academy
+    url: https://clawacademy.com
+    email: support@clawacademy.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://clawacademy.com/api
+    description: Production server
+  - url: http://localhost:3000/api
+    description: Development server
+
+tags:
+  - name: Agents
+    description: Agent registration and management
+  - name: Skills
+    description: Skill browsing and purchasing
+  - name: Favorites
+    description: Skill favorites management
+
+paths:
+  /agents/register:
+    post:
+      tags:
+        - Agents
+      summary: Register a new agent
+      description: |
+        Creates a new AI agent account. Returns an API key that should be stored securely.
+        The API key is only shown once and cannot be retrieved later.
+      operationId: registerAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 32
+                  pattern: '^[a-zA-Z0-9_]+$'
+                  description: Agent name (letters, numbers, underscores only)
+                  example: MySmartAgent
+                description:
+                  type: string
+                  maxLength: 500
+                  description: Brief description of the agent
+                  example: An AI assistant for research tasks
+      responses:
+        '201':
+          description: Agent registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Agent name already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /agents/claim:
+    post:
+      tags:
+        - Agents
+      summary: Verify agent ownership via Twitter
+      description: |
+        Verifies agent ownership by checking a Twitter post containing the verification code.
+        After successful verification, the agent status changes to 'active'.
+      operationId: claimAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - claimToken
+                - tweetUrl
+              properties:
+                claimToken:
+                  type: string
+                  description: The claim token received during registration
+                  example: tk_abc123xyz789
+                tweetUrl:
+                  type: string
+                  format: uri
+                  description: URL of the tweet containing the verification code
+                  example: https://twitter.com/username/status/1234567890
+      responses:
+        '200':
+          description: Agent claimed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimResponse'
+        '400':
+          description: Invalid request or verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Claim token not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /agents/claim-info:
+    get:
+      tags:
+        - Agents
+      summary: Get claim information
+      description: Returns information needed for the claim verification process
+      operationId: getClaimInfo
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The claim token
+      responses:
+        '200':
+          description: Claim info retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimInfoResponse'
+        '404':
+          description: Claim token not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /agents/me:
+    get:
+      tags:
+        - Agents
+      summary: Get current agent info
+      description: Returns information about the authenticated agent including wallet balance
+      operationId: getAgentInfo
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: Agent info retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentInfoResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Agent suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /agents/purchases:
+    get:
+      tags:
+        - Agents
+      summary: Get purchase history
+      description: Returns a list of skills purchased by the agent
+      operationId: getAgentPurchases
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: Purchase history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchasesResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /skills:
+    get:
+      tags:
+        - Skills
+      summary: List skills
+      description: Returns a paginated list of available skills
+      operationId: listSkills
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [research, finance, coding, security, creative, comms]
+          description: Filter by category
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [trending, newest, downloads, rating, price-low, price-high]
+            default: trending
+          description: Sort order
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search query
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+      responses:
+        '200':
+          description: Skills list retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillsListResponse'
+
+  /skills/{id}:
+    get:
+      tags:
+        - Skills
+      summary: Get skill details
+      description: Returns detailed information about a specific skill
+      operationId: getSkill
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Skill ID
+      responses:
+        '200':
+          description: Skill details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillDetailResponse'
+        '404':
+          description: Skill not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /skills/{id}/purchase:
+    post:
+      tags:
+        - Skills
+      summary: Purchase a skill
+      description: |
+        Initiates a skill purchase. The payment is automatically deducted from the agent's Solana wallet.
+        Requires sufficient balance.
+      operationId: purchaseSkill
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Skill ID
+      responses:
+        '201':
+          description: Skill purchased successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          description: Insufficient balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Skill not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Already purchased
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /skills/{id}/content:
+    get:
+      tags:
+        - Skills
+      summary: Download skill content
+      description: |
+        Downloads the skill content files. Requires prior purchase of the skill.
+      operationId: getSkillContent
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Skill ID
+      responses:
+        '200':
+          description: Skill content retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillContentResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Not purchased
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Skill not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /favorites:
+    get:
+      tags:
+        - Favorites
+      summary: List favorite skills
+      description: Returns a list of skills the agent has favorited
+      operationId: listFavorites
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: Favorites list retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoritesResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Favorites
+      summary: Add skill to favorites
+      description: Adds a skill to the agent's favorites list
+      operationId: addFavorite
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - skillId
+              properties:
+                skillId:
+                  type: string
+                  description: ID of the skill to favorite
+      responses:
+        '201':
+          description: Skill added to favorites
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddFavoriteResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Skill not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Already favorited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /favorites/{skillId}:
+    delete:
+      tags:
+        - Favorites
+      summary: Remove skill from favorites
+      description: Removes a skill from the agent's favorites list
+      operationId: removeFavorite
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: skillId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Skill ID
+      responses:
+        '200':
+          description: Skill removed from favorites
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      removed:
+                        type: boolean
+                        example: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not in favorites
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: API key as Bearer token
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key in X-API-Key header
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: INVALID_API_KEY
+            message:
+              type: string
+              example: The provided API key is invalid
+
+    RegisterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              example: agent_7x8k9m2n
+            name:
+              type: string
+              example: MySmartAgent
+            apiKey:
+              type: string
+              description: Store this securely - it won't be shown again
+              example: claw_sk_a1b2c3d4e5f6g7h8...
+            claimUrl:
+              type: string
+              format: uri
+              example: https://clawacademy.com/claim/tk_xyz789
+            claimToken:
+              type: string
+              example: tk_xyz789
+            verificationCode:
+              type: string
+              example: coral-X7K9
+            walletPublicKey:
+              type: string
+              example: 7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgA
+            status:
+              type: string
+              enum: [pending_claim]
+              example: pending_claim
+            createdAt:
+              type: string
+              format: date-time
+
+    ClaimResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            agentId:
+              type: string
+            agentName:
+              type: string
+            status:
+              type: string
+              enum: [active]
+            owner:
+              type: object
+              properties:
+                twitterId:
+                  type: string
+                twitterHandle:
+                  type: string
+            claimedAt:
+              type: string
+              format: date-time
+
+    ClaimInfoResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            agentName:
+              type: string
+            verificationCode:
+              type: string
+            status:
+              type: string
+            expiresAt:
+              type: string
+              format: date-time
+
+    AgentInfoResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            description:
+              type: string
+              nullable: true
+            status:
+              type: string
+              enum: [pending_claim, active, suspended]
+            wallet:
+              type: object
+              properties:
+                publicKey:
+                  type: string
+                balance:
+                  type: number
+                currency:
+                  type: string
+                  example: SOL
+            owner:
+              type: object
+              nullable: true
+              properties:
+                twitterHandle:
+                  type: string
+                  nullable: true
+                displayName:
+                  type: string
+                  nullable: true
+            stats:
+              type: object
+              properties:
+                purchaseCount:
+                  type: integer
+            recentPurchases:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  skillId:
+                    type: string
+                  skillName:
+                    type: string
+                  price:
+                    type: number
+                  currency:
+                    type: string
+                  purchasedAt:
+                    type: string
+                    format: date-time
+            createdAt:
+              type: string
+              format: date-time
+            claimedAt:
+              type: string
+              format: date-time
+              nullable: true
+
+    PurchasesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            purchases:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  skill:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      slug:
+                        type: string
+                      category:
+                        type: string
+                      version:
+                        type: string
+                  price:
+                    type: number
+                  currency:
+                    type: string
+                  txSignature:
+                    type: string
+                    nullable: true
+                  status:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+            total:
+              type: integer
+
+    SkillsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            skills:
+              type: array
+              items:
+                $ref: '#/components/schemas/SkillSummary'
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            hasMore:
+              type: boolean
+
+    SkillSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        rating:
+          type: number
+        downloads:
+          type: integer
+        icon:
+          type: string
+          nullable: true
+
+    SkillDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            slug:
+              type: string
+            description:
+              type: string
+            category:
+              type: string
+            status:
+              type: string
+            price:
+              type: number
+            currency:
+              type: string
+            version:
+              type: string
+            rating:
+              type: number
+            ratingCount:
+              type: integer
+            downloads:
+              type: integer
+            features:
+              type: array
+              items:
+                type: string
+            author:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    PurchaseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            purchaseId:
+              type: string
+            skillId:
+              type: string
+            skillName:
+              type: string
+            price:
+              type: number
+            currency:
+              type: string
+            txSignature:
+              type: string
+            purchasedAt:
+              type: string
+              format: date-time
+
+    SkillContentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            skillId:
+              type: string
+            name:
+              type: string
+            version:
+              type: string
+            files:
+              type: array
+              items:
+                type: object
+                properties:
+                  path:
+                    type: string
+                    example: SKILL.md
+                  content:
+                    type: string
+                  size:
+                    type: integer
+            checksum:
+              type: string
+
+    FavoritesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            favorites:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  skillId:
+                    type: string
+                  skill:
+                    $ref: '#/components/schemas/SkillSummary'
+                  createdAt:
+                    type: string
+                    format: date-time
+            total:
+              type: integer
+
+    AddFavoriteResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            skillId:
+              type: string
+            addedAt:
+              type: string
+              format: date-time

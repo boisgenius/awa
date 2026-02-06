@@ -10,3 +10,12 @@ export {
   type AgentWithOwner,
   type AgentBalance,
 } from './service';
+
+export {
+  getAgentFavorites,
+  isFavorited,
+  addFavorite,
+  removeFavorite,
+  getSkillFavoriteCount,
+  type FavoriteSkill,
+} from './favorites';

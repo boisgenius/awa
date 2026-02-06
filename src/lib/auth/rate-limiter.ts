@@ -191,8 +191,18 @@ export function getRateLimiter(): RateLimiter {
  * Create rate limit headers for response
  */
 export function createRateLimitHeaders(result: RateLimitResult): Record<string, string> {
-  return {
+  const headers: Record<string, string> = {
     'X-RateLimit-Remaining': String(result.remaining),
     'X-RateLimit-Reset': String(Math.ceil(result.resetAt / 1000)),
   };
+
+  // Add Retry-After header when rate limited
+  if (!result.allowed) {
+    const retryAfterSeconds = Math.ceil((result.resetAt - Date.now()) / 1000);
+    if (retryAfterSeconds > 0) {
+      headers['Retry-After'] = String(retryAfterSeconds);
+    }
+  }
+
+  return headers;
 }

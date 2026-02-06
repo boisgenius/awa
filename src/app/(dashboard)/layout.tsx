@@ -114,8 +114,8 @@ export default function DashboardLayout({
           {/* Footer */}
           <footer className="footer">
             <div className="footer-links">
-              <Link href="/docs">Documentation</Link>
-              <Link href="/api-docs">API</Link>
+              <Link href="/developers">Documentation</Link>
+              <Link href="/openapi.yaml" target="_blank">API Spec</Link>
               <a href="https://discord.com" target="_blank" rel="noopener noreferrer">Discord</a>
               <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">Twitter</a>
               <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>

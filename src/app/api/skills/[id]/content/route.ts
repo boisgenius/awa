@@ -3,15 +3,13 @@
  * Download skill content (requires purchase)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getAgentByApiKey } from '@/lib/agents';
+import { NextRequest } from 'next/server';
 import { getSkillContent, hasPurchased } from '@/lib/skills';
 import {
-  isValidApiKeyFormat,
-  getRateLimiter,
-  createRateLimitHeaders,
+  withAuth,
+  successResponse,
+  errorResponse,
   ErrorCodes,
-  type ApiResponse,
 } from '@/lib/auth';
 
 interface SkillContentResponse {
@@ -26,124 +24,38 @@ interface SkillContentResponse {
   checksum?: string;
 }
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
+/**
+ * Extract skillId from URL path
+ */
+function extractSkillId(request: NextRequest): string | null {
+  const url = new URL(request.url);
+  const pathParts = url.pathname.split('/');
+  // /api/skills/[id]/content -> id is at index -2
+  return pathParts[pathParts.length - 2] || null;
 }
 
 /**
- * Extract API key from request
+ * GET /api/skills/:id/content
  */
-function extractApiKey(request: NextRequest): string | null {
-  const xApiKey = request.headers.get('x-api-key');
-  if (xApiKey) return xApiKey;
+export const GET = withAuth<SkillContentResponse>(
+  async (request, { agent }) => {
+    const skillId = extractSkillId(request);
 
-  const authorization = request.headers.get('authorization');
-  if (authorization?.startsWith('Bearer ')) {
-    return authorization.slice(7);
-  }
-
-  return null;
-}
-
-export async function GET(
-  request: NextRequest,
-  context: RouteContext
-): Promise<NextResponse<ApiResponse<SkillContentResponse>>> {
-  try {
-    const params = await context.params;
-    const skillId = params.id;
-
-    // Extract and validate API key
-    const apiKey = extractApiKey(request);
-
-    if (!apiKey) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: ErrorCodes.MISSING_AUTH,
-            message: 'API key required',
-          },
-        },
-        { status: 401 }
-      );
-    }
-
-    if (!isValidApiKeyFormat(apiKey)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: ErrorCodes.INVALID_API_KEY,
-            message: 'Invalid API key format',
-          },
-        },
-        { status: 401 }
-      );
-    }
-
-    // Get agent
-    const agent = await getAgentByApiKey(apiKey);
-
-    if (!agent) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: ErrorCodes.INVALID_API_KEY,
-            message: 'Invalid API key',
-          },
-        },
-        { status: 401 }
-      );
-    }
-
-    // Check agent status
-    if (agent.status !== 'active') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: ErrorCodes.AGENT_NOT_ACTIVE,
-            message: 'Agent must be active to download content',
-          },
-        },
-        { status: 403 }
-      );
-    }
-
-    // Rate limiting
-    const rateLimiter = getRateLimiter();
-    const rateLimitResult = rateLimiter.consume(`download:${agent.id}`, 'download');
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: ErrorCodes.RATE_LIMITED,
-            message: 'Too many download requests. Please try again later.',
-          },
-        },
-        {
-          status: 429,
-          headers: createRateLimitHeaders(rateLimitResult),
-        }
+    if (!skillId) {
+      return errorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'Skill ID is required',
+        400
       );
     }
 
     // Check if purchased
     const purchased = await hasPurchased(agent.id, skillId);
     if (!purchased) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'NOT_PURCHASED',
-            message: 'You must purchase this skill before downloading content',
-          },
-        },
-        { status: 403 }
+      return errorResponse(
+        'NOT_PURCHASED',
+        'You must purchase this skill before downloading content',
+        403
       );
     }
 
@@ -151,15 +63,10 @@ export async function GET(
     const content = await getSkillContent(agent.id, skillId);
 
     if (!content) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: ErrorCodes.SKILL_NOT_FOUND,
-            message: 'Skill content not found',
-          },
-        },
-        { status: 404 }
+      return errorResponse(
+        ErrorCodes.SKILL_NOT_FOUND,
+        'Skill content not found',
+        404
       );
     }
 
@@ -189,34 +96,12 @@ export async function GET(
       }
     }
 
-    // Return content
-    const response: SkillContentResponse = {
+    return successResponse({
       skillId: content.skillId,
       name: content.name,
       version: content.version,
       files,
-    };
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: response,
-      },
-      {
-        headers: createRateLimitHeaders(rateLimitResult),
-      }
-    );
-  } catch (error) {
-    console.error('Content download error:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: {
-          code: ErrorCodes.INTERNAL_ERROR,
-          message: 'An unexpected error occurred',
-        },
-      },
-      { status: 500 }
-    );
-  }
-}
+    });
+  },
+  { rateLimit: 'download' }
+);

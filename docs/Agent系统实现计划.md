@@ -358,7 +358,7 @@ clawacademy/
 - [x] 代码复制功能
 - [x] 按钮激活状态样式
 - [ ] ClawHub 技能包发布 (待完成)
-- [ ] skill.md 内容完善 (待完成)
+- [x] skill.md 内容完善
 
 ---
 
@@ -1483,45 +1483,45 @@ const RATE_LIMITS = {
 | skill.md 更新 | ✅ | `public/skill.md` |
 | 设计文档 | ✅ | `docs/首页双入口设计.md` |
 
-### Week 1: 基础架构
+### Week 1: 基础架构 ✅ 已完成
 
-| 天数 | 任务 | 产出 |
-|------|------|------|
-| Day 1 | 数据库 Schema | Supabase 表结构 |
-| Day 2 | 认证工具包 | `src/lib/auth/*` |
-| Day 3 | Agent 注册 API | POST `/api/agents/register` |
-| Day 4 | Claim 验证 API | POST `/api/agents/claim` |
-| Day 5 | Claim 页面 | `/claim/[token]/page.tsx` |
+| 天数 | 任务 | 产出 | 状态 |
+|------|------|------|------|
+| Day 1 | 数据库 Schema | `supabase/migrations/001_agents_schema.sql` | ✅ |
+| Day 2 | 认证工具包 | `src/lib/auth/*` (credentials, rate-limiter, types) | ✅ |
+| Day 3 | Agent 注册 API | POST `/api/agents/register` | ✅ |
+| Day 4 | Claim 验证 API | POST `/api/agents/claim` | ✅ |
+| Day 5 | Claim 页面 | `/claim/[token]/page.tsx` | ✅ |
 
-### Week 2: 技能系统
+### Week 2: 技能系统 ✅ 已完成
 
-| 天数 | 任务 | 产出 |
-|------|------|------|
-| Day 1 | Agent 信息 API | GET `/api/agents/me` |
-| Day 2 | 技能购买 API | POST `/api/skills/:id/purchase` |
-| Day 3 | 技能内容 API | GET `/api/skills/:id/content` |
-| Day 4 | Solana 支付集成 | 自动扣款功能 |
-| Day 5 | 购买记录 API | GET `/api/agents/me/purchases` |
+| 天数 | 任务 | 产出 | 状态 |
+|------|------|------|------|
+| Day 1 | Agent 信息 API | GET `/api/agents/me` | ✅ |
+| Day 2 | 技能购买 API | POST `/api/skills/:id/purchase` | ✅ |
+| Day 3 | 技能内容 API | GET `/api/skills/:id/content` | ✅ |
+| Day 4 | Solana 支付集成 | `src/lib/solana/wallet.ts` | ✅ |
+| Day 5 | 购买记录 API | GET `/api/agents/purchases` | ✅ |
 
-### Week 3: 完善与测试
+### Week 3: 完善与测试 ✅ 已完成
 
-| 天数 | 任务 | 产出 |
-|------|------|------|
-| Day 1 | 收藏功能 | Favorites API |
-| Day 2 | 限流器 | Rate Limiter 中间件 |
-| Day 3 | 错误处理 | 统一错误响应 |
-| Day 4 | 单元测试 | Jest 测试用例 |
-| Day 5 | 集成测试 | E2E 测试 |
+| 天数 | 任务 | 产出 | 状态 |
+|------|------|------|------|
+| Day 1 | 收藏功能 | GET/POST/DELETE `/api/favorites` | ✅ |
+| Day 2 | 限流器中间件 | `src/lib/auth/api-middleware.ts` | ✅ |
+| Day 3 | 错误处理 | 统一 `withAuth` 中间件，重构所有 API | ✅ |
+| Day 4 | 单元测试 | Vitest 测试用例 (`credentials.test.ts`, `rate-limiter.test.ts`, `favorites.test.ts`) | ✅ |
+| Day 5 | 集成测试 | E2E 测试 (`e2e/api.spec.ts`, `e2e/claim.spec.ts`) | ✅ |
 
-### Week 4: 文档与发布
+### Week 4: 文档与发布 ✅ 已完成
 
-| 天数 | 任务 | 产出 |
-|------|------|------|
-| Day 1 | 更新 skill.md | 完整 Agent 指南 |
-| Day 2 | API 文档 | OpenAPI/Swagger |
-| Day 3 | 开发者页面 | `/developers` |
-| Day 4 | Bug 修复 | 修复测试发现的问题 |
-| Day 5 | 发布准备 | 部署检查清单 |
+| 天数 | 任务 | 产出 | 状态 |
+|------|------|------|------|
+| Day 1 | 更新 skill.md | `public/skill.md` 完整 Agent 指南 | ✅ |
+| Day 2 | API 文档 | `public/openapi.yaml` OpenAPI 规范 | ✅ |
+| Day 3 | 开发者页面 | `/developers` 页面 | ✅ |
+| Day 4 | Bug 修复 | 修复测试发现的问题 | ✅ |
+| Day 5 | 发布准备 | `docs/部署检查清单.md` | ✅ |
 
 ---
 
@@ -1579,7 +1579,7 @@ const agent = await validateApiKey(apiKey);
 
 ---
 
-*文档版本: v1.1*
+*文档版本: v1.4*
 *基于 Moltbook 技术研究设计*
 *最后更新: 2026-02-06*
-*更新内容: 添加 Phase 0 首页双入口设计*
+*更新内容: 完成所有 Week 1-4 任务，包括单元测试、E2E 测试和部署检查清单*

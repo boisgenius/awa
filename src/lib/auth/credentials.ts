@@ -6,8 +6,8 @@
 import { randomBytes, createHash, timingSafeEqual } from 'crypto';
 
 // Constants
-const API_KEY_PREFIX = 'claw_sk_';
-const CLAIM_TOKEN_PREFIX = 'tk_';
+export const API_KEY_PREFIX = 'claw_sk_';
+export const CLAIM_TOKEN_PREFIX = 'tk_';
 const API_KEY_LENGTH = 32; // bytes
 const CLAIM_TOKEN_LENGTH = 16; // bytes
 const CLAIM_TOKEN_EXPIRY_DAYS = 7;
@@ -75,7 +75,7 @@ export function getApiKeyPrefix(apiKey: string): string {
  * Validate API key format
  */
 export function isValidApiKeyFormat(apiKey: string): boolean {
-  if (!apiKey.startsWith(API_KEY_PREFIX)) {
+  if (!apiKey || !apiKey.startsWith(API_KEY_PREFIX)) {
     return false;
   }
   const keyPart = apiKey.slice(API_KEY_PREFIX.length);
@@ -87,7 +87,7 @@ export function isValidApiKeyFormat(apiKey: string): boolean {
  * Validate claim token format
  */
 export function isValidClaimTokenFormat(token: string): boolean {
-  if (!token.startsWith(CLAIM_TOKEN_PREFIX)) {
+  if (!token || !token.startsWith(CLAIM_TOKEN_PREFIX)) {
     return false;
   }
   const tokenPart = token.slice(CLAIM_TOKEN_PREFIX.length);
