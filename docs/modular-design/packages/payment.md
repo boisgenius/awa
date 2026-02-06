@@ -1,155 +1,112 @@
-# @clawacademy/payment
+# @awa/payment
 
-> Solana 支付验证 - 购买技能、验证交易
+> Agent 自动支付 - 无需用户手动确认
 
 ## 安装
 
 ```bash
-npm install @clawacademy/payment
-# or
-pnpm add @clawacademy/payment
+pnpm add @awa/payment
 ```
 
 ## 功能特性
 
+- **自动支付** - Agent 绑定钱包，服务端签名
 - **交易验证** - 验证 Solana 链上交易
 - **购买记录** - 记录和查询购买历史
 - **多币种** - SOL / USDC / $CLAW
-- **退款支持** - 管理员退款功能
-- **Webhook** - 交易状态回调
+- **余额查询** - 查询 Agent 钱包余额
 
 ---
 
 ## 快速开始
 
 ```typescript
-import { PaymentSystem, SupabasePaymentAdapter } from '@clawacademy/payment';
-import { Connection } from '@solana/web3.js';
+import { AgentPaymentService, SupabasePaymentAdapter } from '@awa/payment';
+import { Connection, Keypair } from '@solana/web3.js';
 
 const connection = new Connection(process.env.SOLANA_RPC_URL);
-const payment = new PaymentSystem({
+const payment = new AgentPaymentService({
   adapter: new SupabasePaymentAdapter(supabase),
   solanaConnection: connection,
   treasuryWallet: process.env.TREASURY_WALLET,
+  walletEncryptionKey: process.env.WALLET_ENCRYPTION_KEY,
 });
 
-// 创建购买订单
-const order = await payment.createOrder({
-  userId: 'user-uuid',
-  skillId: 'skill-uuid',
-  price: 2.5,
-  currency: 'SOL',
-});
+// Agent 自动购买技能
+const result = await payment.purchaseSkill(agentId, skillId);
 
-// 返回给前端
-// { orderId, price, currency, treasuryWallet, expiresAt }
+if (result.success) {
+  console.log('Transaction:', result.transactionSignature);
+  console.log('Skill Content:', result.skillContent);
+} else {
+  console.error('Error:', result.error);
+}
 
-// 用户支付后，验证交易
-const purchase = await payment.verifyAndComplete({
-  orderId: order.id,
-  txSignature: 'tx-signature-from-wallet',
-});
+// 查询 Agent 钱包余额
+const balance = await payment.getAgentBalance(agentId);
+console.log('Balance:', balance, 'SOL');
 
-// 检查是否已购买
-const hasPurchased = await payment.hasPurchased('user-uuid', 'skill-uuid');
+// 获取购买记录
+const purchases = await payment.getAgentPurchases(agentId);
 ```
 
 ---
 
-## 购买流程
+## 自动支付流程
 
 ```
-┌─────────┐      ┌─────────┐      ┌─────────┐      ┌─────────┐
-│  前端   │      │   API   │      │ Payment │      │ Solana  │
-└────┬────┘      └────┬────┘      └────┬────┘      └────┬────┘
-     │                │                │                │
-     │ 1. 点击购买    │                │                │
-     │───────────────>│                │                │
-     │                │                │                │
-     │                │ 2. createOrder │                │
-     │                │───────────────>│                │
-     │                │                │                │
-     │                │ 3. order info  │                │
-     │                │<───────────────│                │
-     │                │                │                │
-     │ 4. order info  │                │                │
-     │<───────────────│                │                │
-     │                │                │                │
-     │ 5. 钱包签名发送交易 ────────────────────────────>│
-     │                │                │                │
-     │ 6. txSignature │                │                │
-     │<──────────────────────────────────────────────────│
-     │                │                │                │
-     │ 7. 提交验证    │                │                │
-     │───────────────>│                │                │
-     │                │                │                │
-     │                │ 8. verify      │                │
-     │                │───────────────>│                │
-     │                │                │                │
-     │                │                │ 9. 查询交易    │
-     │                │                │───────────────>│
-     │                │                │                │
-     │                │                │ 10. 交易详情   │
-     │                │                │<───────────────│
-     │                │                │                │
-     │                │ 11. purchase   │                │
-     │                │<───────────────│                │
-     │                │                │                │
-     │ 12. 购买成功   │                │                │
-     │<───────────────│                │                │
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Agent     │     │   API       │     │  Payment    │     │   Solana    │
+│   (SDK)     │     │   Server    │     │  Service    │     │   Network   │
+└──────┬──────┘     └──────┬──────┘     └──────┬──────┘     └──────┬──────┘
+       │                   │                   │                   │
+       │ 1. 购买请求       │                   │                   │
+       │  (API Key)        │                   │                   │
+       │──────────────────>│                   │                   │
+       │                   │                   │                   │
+       │                   │ 2. 验证 Agent     │                   │
+       │                   │──────────────────>│                   │
+       │                   │                   │                   │
+       │                   │                   │ 3. 获取钱包密钥   │
+       │                   │                   │ (解密私钥)        │
+       │                   │                   │                   │
+       │                   │                   │ 4. 构建交易       │
+       │                   │                   │                   │
+       │                   │                   │ 5. 签名并提交     │
+       │                   │                   │──────────────────>│
+       │                   │                   │                   │
+       │                   │                   │ 6. 交易确认       │
+       │                   │                   │<──────────────────│
+       │                   │                   │                   │
+       │                   │ 7. 返回结果       │                   │
+       │                   │<──────────────────│                   │
+       │                   │                   │                   │
+       │ 8. 返回技能内容   │                   │                   │
+       │<──────────────────│                   │                   │
 ```
 
 ---
 
 ## API 参考
 
-### PaymentSystem
+### AgentPaymentService
 
 ```typescript
-class PaymentSystem {
-  constructor(options: PaymentSystemOptions);
+class AgentPaymentService {
+  constructor(options: AgentPaymentOptions);
 
-  // 订单
-  createOrder(params: CreateOrderParams): Promise<Order>;
-  getOrder(orderId: string): Promise<Order | null>;
-  cancelOrder(orderId: string): Promise<void>;
+  // 自动支付（服务端签名）
+  purchaseSkill(agentId: string, skillId: string): Promise<PurchaseResult>;
 
-  // 验证和完成
-  verifyAndComplete(params: VerifyParams): Promise<Purchase>;
-  verifyTransaction(txSignature: string): Promise<TransactionInfo>;
+  // 余额查询
+  getAgentBalance(agentId: string): Promise<number>;
 
-  // 查询
-  hasPurchased(userId: string, skillId: string): Promise<boolean>;
-  getPurchase(userId: string, skillId: string): Promise<Purchase | null>;
-  getUserPurchases(userId: string, options?: ListOptions): Promise<PurchaseListResult>;
-  getSkillPurchases(skillId: string, options?: ListOptions): Promise<PurchaseListResult>;
+  // 交易验证
+  verifyTransaction(signature: string): Promise<TransactionResult>;
 
-  // 统计
-  getSkillRevenue(skillId: string): Promise<RevenueStats>;
-  getAuthorRevenue(authorId: string): Promise<RevenueStats>;
-
-  // 退款（管理员）
-  refund(purchaseId: string, reason: string): Promise<Refund>;
-}
-```
-
-### PaymentAdapter 接口
-
-```typescript
-interface PaymentAdapter {
-  // 订单
-  createOrder(input: CreateOrderInput): Promise<Order>;
-  getOrder(id: string): Promise<Order | null>;
-  updateOrder(id: string, input: UpdateOrderInput): Promise<Order>;
-
-  // 购买
-  createPurchase(input: CreatePurchaseInput): Promise<Purchase>;
-  getPurchase(userId: string, skillId: string): Promise<Purchase | null>;
-  getPurchasesByUser(userId: string, options?: ListOptions): Promise<{ purchases: Purchase[]; total: number }>;
-  getPurchasesBySkill(skillId: string, options?: ListOptions): Promise<{ purchases: Purchase[]; total: number }>;
-
-  // 退款
-  createRefund(input: CreateRefundInput): Promise<Refund>;
+  // 购买记录
+  getAgentPurchases(agentId: string): Promise<Purchase[]>;
+  hasPurchased(agentId: string, skillId: string): Promise<boolean>;
 }
 ```
 
@@ -159,25 +116,18 @@ interface PaymentAdapter {
 
 ```typescript
 type Currency = 'SOL' | 'USDC' | 'CLAW';
-type OrderStatus = 'pending' | 'completed' | 'expired' | 'cancelled';
 type PurchaseStatus = 'confirmed' | 'refunded';
 
-interface Order {
-  id: string;
-  userId: string;
-  skillId: string;
-  price: number;
-  currency: Currency;
-  status: OrderStatus;
-  treasuryWallet: string;
-  expiresAt: Date;
-  createdAt: Date;
+interface PurchaseResult {
+  success: boolean;
+  transactionSignature?: string;
+  skillContent?: string;        // 购买成功后返回技能内容
+  error?: string;
 }
 
 interface Purchase {
   id: string;
-  orderId: string;
-  userId: string;
+  agentId: string;
   skillId: string;
   price: number;
   currency: Currency;
@@ -186,19 +136,7 @@ interface Purchase {
   createdAt: Date;
 }
 
-interface CreateOrderParams {
-  userId: string;
-  skillId: string;
-  price: number;
-  currency: Currency;
-}
-
-interface VerifyParams {
-  orderId: string;
-  txSignature: string;
-}
-
-interface TransactionInfo {
+interface TransactionResult {
   signature: string;
   confirmed: boolean;
   amount: number;
@@ -207,25 +145,44 @@ interface TransactionInfo {
   timestamp: Date;
 }
 
-interface RevenueStats {
-  total: number;
-  currency: Currency;
-  count: number;
-  lastPurchase?: Date;
-}
-
-interface PaymentSystemOptions {
+interface AgentPaymentOptions {
   adapter: PaymentAdapter;
   solanaConnection: Connection;
   treasuryWallet: string;
-  orderExpiration?: number;  // 默认 30 分钟
-  confirmations?: number;    // 默认 1
+  walletEncryptionKey: string;  // 解密 Agent 钱包私钥
+  confirmations?: number;       // 默认 1
 }
 ```
 
 ---
 
-## 交易验证
+## 安全考虑
+
+### 私钥管理
+
+```typescript
+// Agent 钱包私钥加密存储在数据库
+// 只在需要签名时解密，用完立即清除
+
+const signTransaction = async (agentId: string, tx: Transaction) => {
+  // 1. 获取加密的私钥
+  const encryptedKey = await getAgentEncryptedKey(agentId);
+
+  // 2. 解密私钥
+  const privateKey = decrypt(encryptedKey, WALLET_ENCRYPTION_KEY);
+
+  // 3. 签名交易
+  const keypair = Keypair.fromSecretKey(privateKey);
+  tx.sign(keypair);
+
+  // 4. 清除内存中的私钥
+  privateKey.fill(0);
+
+  return tx;
+};
+```
+
+### 交易验证
 
 ```typescript
 // 验证交易详情
@@ -236,133 +193,55 @@ const txInfo = await payment.verifyTransaction(txSignature);
 // 2. 金额正确
 // 3. 收款地址正确（treasury wallet）
 // 4. 交易时间在有效期内
-
-if (!txInfo.confirmed) {
-  throw new Error('Transaction not confirmed');
-}
-
-if (txInfo.amount < order.price) {
-  throw new Error('Insufficient payment');
-}
-
-if (txInfo.to !== treasuryWallet) {
-  throw new Error('Invalid recipient');
-}
-```
-
----
-
-## 多币种支持
-
-```typescript
-// SOL 支付
-const order = await payment.createOrder({
-  userId,
-  skillId,
-  price: 2.5,
-  currency: 'SOL',
-});
-
-// USDC 支付
-const order = await payment.createOrder({
-  userId,
-  skillId,
-  price: 50,
-  currency: 'USDC',
-});
-
-// $CLAW 支付（享受折扣）
-const order = await payment.createOrder({
-  userId,
-  skillId,
-  price: 100,
-  currency: 'CLAW',
-});
-```
-
----
-
-## Webhook 集成
-
-```typescript
-const payment = new PaymentSystem({
-  adapter,
-  solanaConnection,
-  treasuryWallet,
-  webhooks: {
-    onPurchaseComplete: async (purchase) => {
-      // 通知用户
-      await notifyUser(purchase.userId, 'Purchase complete!');
-
-      // 更新技能下载量
-      await skills.incrementDownloads(purchase.skillId);
-
-      // 授权 Agent 访问
-      await grantAgentAccess(purchase.userId, purchase.skillId);
-    },
-    onRefund: async (refund) => {
-      // 撤销访问权限
-      await revokeAgentAccess(refund.userId, refund.skillId);
-    },
-  },
-});
 ```
 
 ---
 
 ## API 示例
 
-### 创建订单
+### 购买技能
 
 ```typescript
-// app/api/skills/[id]/purchase/route.ts
-export const POST = authMiddleware(async (req, { user }) => {
-  const skillId = req.params.id;
+// app/api/purchases/route.ts
+import { agentAuthMiddleware } from '@awa/auth/next';
+import { payment } from '@/lib/payment';
+
+export const POST = agentAuthMiddleware(async (req, { agent }) => {
+  const { skillId } = await req.json();
 
   // 检查是否已购买
-  if (await payment.hasPurchased(user.id, skillId)) {
+  if (await payment.hasPurchased(agent.id, skillId)) {
     return Response.json(
       { error: 'Already purchased' },
       { status: 400 }
     );
   }
 
-  // 获取技能价格
-  const skill = await skills.getById(skillId);
+  // 自动支付
+  const result = await payment.purchaseSkill(agent.id, skillId);
 
-  // 创建订单
-  const order = await payment.createOrder({
-    userId: user.id,
-    skillId,
-    price: skill.price,
-    currency: skill.currency,
+  if (!result.success) {
+    return Response.json(
+      { error: result.error },
+      { status: 400 }
+    );
+  }
+
+  return Response.json({
+    transactionSignature: result.transactionSignature,
+    skillContent: result.skillContent,
   });
-
-  return Response.json(order);
 });
 ```
 
-### 验证支付
+### 查询余额
 
 ```typescript
-// app/api/orders/[id]/verify/route.ts
-export const POST = authMiddleware(async (req, { user }) => {
-  const orderId = req.params.id;
-  const { txSignature } = await req.json();
+// app/api/agents/[id]/balance/route.ts
+export const GET = agentAuthMiddleware(async (req, { agent }) => {
+  const balance = await payment.getAgentBalance(agent.id);
 
-  // 验证订单属于当前用户
-  const order = await payment.getOrder(orderId);
-  if (order.userId !== user.id) {
-    return Response.json({ error: 'Unauthorized' }, { status: 403 });
-  }
-
-  // 验证并完成购买
-  const purchase = await payment.verifyAndComplete({
-    orderId,
-    txSignature,
-  });
-
-  return Response.json(purchase);
+  return Response.json({ balance });
 });
 ```
 
@@ -371,75 +250,41 @@ export const POST = authMiddleware(async (req, { user }) => {
 ## 测试
 
 ```typescript
-import { PaymentSystem, InMemoryPaymentAdapter, MockSolanaConnection } from '@clawacademy/payment/testing';
+import { AgentPaymentService, InMemoryPaymentAdapter, MockSolanaConnection } from '@awa/payment/testing';
 
-describe('PaymentSystem', () => {
-  let payment: PaymentSystem;
+describe('AgentPaymentService', () => {
+  let payment: AgentPaymentService;
   let mockConnection: MockSolanaConnection;
 
   beforeEach(() => {
     mockConnection = new MockSolanaConnection();
-    payment = new PaymentSystem({
+    payment = new AgentPaymentService({
       adapter: new InMemoryPaymentAdapter(),
       solanaConnection: mockConnection,
       treasuryWallet: 'treasury-wallet-address',
+      walletEncryptionKey: 'test-key',
     });
   });
 
-  it('creates order', async () => {
-    const order = await payment.createOrder({
-      userId: 'user-1',
-      skillId: 'skill-1',
-      price: 2.5,
-      currency: 'SOL',
-    });
+  it('purchases skill automatically', async () => {
+    // Mock Agent 有足够余额
+    mockConnection.mockBalance('agent-wallet', 10);
 
-    expect(order.status).toBe('pending');
-    expect(order.price).toBe(2.5);
+    const result = await payment.purchaseSkill('agent-1', 'skill-1');
+
+    expect(result.success).toBe(true);
+    expect(result.transactionSignature).toBeDefined();
+    expect(result.skillContent).toBeDefined();
   });
 
-  it('verifies and completes purchase', async () => {
-    const order = await payment.createOrder({
-      userId: 'user-1',
-      skillId: 'skill-1',
-      price: 2.5,
-      currency: 'SOL',
-    });
+  it('fails with insufficient balance', async () => {
+    // Mock Agent 余额不足
+    mockConnection.mockBalance('agent-wallet', 0.001);
 
-    // Mock 交易
-    mockConnection.mockTransaction('tx-123', {
-      confirmed: true,
-      amount: 2.5,
-      to: 'treasury-wallet-address',
-    });
+    const result = await payment.purchaseSkill('agent-1', 'skill-1');
 
-    const purchase = await payment.verifyAndComplete({
-      orderId: order.id,
-      txSignature: 'tx-123',
-    });
-
-    expect(purchase.status).toBe('confirmed');
-  });
-
-  it('rejects invalid transaction', async () => {
-    const order = await payment.createOrder({
-      userId: 'user-1',
-      skillId: 'skill-1',
-      price: 2.5,
-      currency: 'SOL',
-    });
-
-    // Mock 金额不足的交易
-    mockConnection.mockTransaction('tx-123', {
-      confirmed: true,
-      amount: 1.0, // 不足
-      to: 'treasury-wallet-address',
-    });
-
-    await expect(payment.verifyAndComplete({
-      orderId: order.id,
-      txSignature: 'tx-123',
-    })).rejects.toThrow('Insufficient payment');
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Insufficient balance');
   });
 });
 ```

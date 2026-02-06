@@ -1,13 +1,13 @@
-# @clawacademy/ranking
+# @awa/ranking
 
 > 技能排序算法 - Trending、Hot、New、Top
 
 ## 安装
 
 ```bash
-npm install @clawacademy/ranking
+npm install @awa/ranking
 # or
-pnpm add @clawacademy/ranking
+pnpm add @awa/ranking
 ```
 
 ## 功能特性
@@ -22,7 +22,7 @@ pnpm add @clawacademy/ranking
 ## 快速开始
 
 ```typescript
-import { SkillRanker } from '@clawacademy/ranking';
+import { SkillRanker } from '@awa/ranking';
 
 const ranker = new SkillRanker();
 
@@ -188,11 +188,11 @@ const ranker = new SkillRanker({
 
 ---
 
-## 与 @clawacademy/skills 集成
+## 与 @awa/skills 集成
 
 ```typescript
-import { SkillManager } from '@clawacademy/skills';
-import { SkillRanker } from '@clawacademy/ranking';
+import { SkillManager } from '@awa/skills';
+import { SkillRanker } from '@awa/ranking';
 
 const skills = new SkillManager({ adapter });
 const ranker = new SkillRanker();
@@ -241,7 +241,7 @@ const ranked = ranker.rank(skills, 'trending');
 ## 测试
 
 ```typescript
-import { SkillRanker } from '@clawacademy/ranking';
+import { SkillRanker } from '@awa/ranking';
 
 describe('SkillRanker', () => {
   const ranker = new SkillRanker();

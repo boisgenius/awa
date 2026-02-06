@@ -1,13 +1,13 @@
-# @clawacademy/rate-limiter
+# @awa/rate-limiter
 
 > API 限流器 - 滑动窗口算法、多存储后端
 
 ## 安装
 
 ```bash
-npm install @clawacademy/rate-limiter
+npm install @awa/rate-limiter
 # or
-pnpm add @clawacademy/rate-limiter
+pnpm add @awa/rate-limiter
 ```
 
 ## 功能特性
@@ -23,7 +23,7 @@ pnpm add @clawacademy/rate-limiter
 ## 快速开始
 
 ```typescript
-import { RateLimiter, MemoryStore } from '@clawacademy/rate-limiter';
+import { RateLimiter, MemoryStore } from '@awa/rate-limiter';
 
 const limiter = new RateLimiter({
   store: new MemoryStore(),
@@ -81,7 +81,7 @@ await limiter.consume('user-123', 'post');   // 发帖限制
 ### 内存存储（单实例）
 
 ```typescript
-import { RateLimiter, MemoryStore } from '@clawacademy/rate-limiter';
+import { RateLimiter, MemoryStore } from '@awa/rate-limiter';
 
 const limiter = new RateLimiter({
   store: new MemoryStore(),
@@ -92,7 +92,7 @@ const limiter = new RateLimiter({
 ### Redis 存储（分布式）
 
 ```typescript
-import { RateLimiter, RedisStore } from '@clawacademy/rate-limiter';
+import { RateLimiter, RedisStore } from '@awa/rate-limiter';
 import Redis from 'ioredis';
 
 const redis = new Redis(process.env.REDIS_URL);
@@ -113,7 +113,7 @@ const limiter = new RateLimiter({
 
 ```typescript
 // middleware.ts
-import { rateLimitMiddleware } from '@clawacademy/rate-limiter/next';
+import { rateLimitMiddleware } from '@awa/rate-limiter/next';
 
 export default rateLimitMiddleware({
   store: new MemoryStore(),
@@ -130,7 +130,7 @@ export default rateLimitMiddleware({
 
 // 或在单个 route 使用
 // app/api/auth/login/route.ts
-import { withRateLimit } from '@clawacademy/rate-limiter/next';
+import { withRateLimit } from '@awa/rate-limiter/next';
 
 export const POST = withRateLimit(
   async (req) => {
@@ -144,7 +144,7 @@ export const POST = withRateLimit(
 
 ```typescript
 import express from 'express';
-import { expressRateLimiter } from '@clawacademy/rate-limiter';
+import { expressRateLimiter } from '@awa/rate-limiter';
 
 const app = express();
 
@@ -317,7 +317,7 @@ await limiter.unblock(key);
 ## 测试
 
 ```typescript
-import { RateLimiter, MemoryStore } from '@clawacademy/rate-limiter';
+import { RateLimiter, MemoryStore } from '@awa/rate-limiter';
 
 describe('RateLimiter', () => {
   let limiter: RateLimiter;

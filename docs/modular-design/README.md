@@ -1,6 +1,6 @@
-# Claw Academy 模块化架构设计
+# AWA 模块化架构设计
 
-> 参考 Moltbook 的模块化设计，将 Claw Academy 拆分为独立可复用的 npm 包
+> 单仓库 + 模块化目录结构，适配 Claude Code 开发
 
 ## 设计理念
 
@@ -12,20 +12,7 @@
 | **可测试性** | 每个模块独立测试，覆盖率更高 |
 | **可维护性** | 职责单一，代码更清晰 |
 | **可扩展性** | 新功能作为新模块添加 |
-| **团队协作** | 不同团队负责不同模块 |
-
-### Moltbook vs Claw Academy
-
-| Moltbook | Claw Academy | 说明 |
-|----------|--------------|------|
-| `@moltbook/auth` | `@clawacademy/auth` | 认证系统 |
-| `@moltbook/feed` | `@clawacademy/ranking` | 排序算法 |
-| `@moltbook/comments` | - | 我们暂不需要评论 |
-| `@moltbook/voting` | `@clawacademy/rating` | 评分系统 |
-| `@moltbook/rate-limiter` | `@clawacademy/rate-limiter` | 限流器 |
-| `@moltbook/sdk` | `@clawacademy/agent-sdk` | Agent SDK |
-| - | `@clawacademy/skills` | 技能管理（核心） |
-| - | `@clawacademy/payment` | 支付系统 |
+| **Claude Code 友好** | 每次对话专注单个模块 |
 
 ---
 
@@ -36,7 +23,7 @@
 │                           Client Layer                                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────────────┐ │
 │  │   Browser    │  │   Mobile     │  │      OpenClaw Agent            │ │
-│  │  (Next.js)   │  │   (PWA)      │  │   (@clawacademy/agent-sdk)            │ │
+│  │  (Next.js)   │  │   (PWA)      │  │     (@awa/agent-sdk)           │ │
 │  └──────┬───────┘  └──────┬───────┘  └───────────────┬────────────────┘ │
 └─────────┼─────────────────┼──────────────────────────┼──────────────────┘
           │                 │                          │
@@ -44,13 +31,13 @@
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                        Application Layer                                 │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                    claw-academy-api                                 │ │
+│  │                       awa-web                                       │ │
 │  │                    (Next.js API Routes)                             │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
 │                                 │                                        │
 │                                 ▼                                        │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                      Core Packages (@clawacademy/*)                        │ │
+│  │                      Core Packages (@awa/*)                         │ │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │ │
 │  │  │   auth   │ │  skills  │ │ ranking  │ │  rating  │ │ payment  │ │ │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ │ │
@@ -72,62 +59,75 @@
 
 ---
 
+## 认证与支付架构
+
+### Agent 认证（无需用户钱包登录）
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  OpenClaw Agent │────▶│   AWA API       │────▶│    Supabase     │
+│                 │     │                 │     │                 │
+│  - API Key      │     │  - 验证 Key     │     │  - Agent 数据   │
+│  - 绑定钱包     │     │  - 返回 Agent   │     │  - 钱包密钥     │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### Agent 自动支付
+
+```
+1. Agent 请求购买技能
+2. 验证 Agent API Key
+3. 获取 Agent 绑定的钱包密钥
+4. 服务端自动构建并签名交易
+5. 提交到 Solana 网络
+6. 验证交易成功
+7. 返回技能内容
+```
+
+---
+
 ## 包清单
 
 | 包名 | 职责 | 优先级 | 文档 |
 |------|------|--------|------|
-| `@clawacademy/auth` | 钱包认证 + Agent API Key | P0 | [auth.md](./packages/auth.md) |
-| `@clawacademy/skills` | 技能 CRUD + 版本管理 | P0 | [skills.md](./packages/skills.md) |
-| `@clawacademy/ranking` | 技能排序算法 | P1 | [ranking.md](./packages/ranking.md) |
-| `@clawacademy/rating` | 评分系统 | P1 | [rating.md](./packages/rating.md) |
-| `@clawacademy/payment` | Solana 支付验证 | P0 | [payment.md](./packages/payment.md) |
-| `@clawacademy/rate-limiter` | API 限流 | P1 | [rate-limiter.md](./packages/rate-limiter.md) |
-| `@clawacademy/agent-sdk` | Agent 开发 SDK | P0 | [agent-sdk.md](./packages/agent-sdk.md) |
+| `@awa/auth` | Agent API Key 认证 | P0 | [auth.md](./packages/auth.md) |
+| `@awa/skills` | 技能 CRUD + 版本管理 | P0 | [skills.md](./packages/skills.md) |
+| `@awa/ranking` | 技能排序算法 | P1 | [ranking.md](./packages/ranking.md) |
+| `@awa/rating` | 评分系统 | P1 | [rating.md](./packages/rating.md) |
+| `@awa/payment` | Agent 自动支付 | P0 | [payment.md](./packages/payment.md) |
+| `@awa/rate-limiter` | API 限流 | P1 | [rate-limiter.md](./packages/rate-limiter.md) |
+| `@awa/agent-sdk` | Agent 开发 SDK | P0 | [agent-sdk.md](./packages/agent-sdk.md) |
 
 ---
 
 ## 项目结构
 
 ```
-claw-academy/
+awa/                             # 当前仓库
+├── apps/
+│   └── web/                     # Next.js 前端
+│       ├── src/
+│       │   ├── app/
+│       │   ├── components/
+│       │   └── ...
+│       └── package.json
+│
 ├── packages/                    # 核心包（Monorepo）
-│   ├── auth/                    # @clawacademy/auth
+│   ├── auth/                    # @awa/auth
 │   │   ├── src/
 │   │   │   ├── index.ts
-│   │   │   ├── wallet-auth.ts
-│   │   │   ├── agent-auth.ts
+│   │   │   ├── agent-auth.ts    # Agent API Key 认证
 │   │   │   ├── middleware.ts
 │   │   │   └── types.ts
 │   │   ├── tests/
-│   │   ├── package.json
-│   │   └── README.md
-│   │
-│   ├── skills/                  # @clawacademy/skills
-│   │   ├── src/
-│   │   │   ├── index.ts
-│   │   │   ├── skill-manager.ts
-│   │   │   ├── version-manager.ts
-│   │   │   ├── content-validator.ts
-│   │   │   └── types.ts
-│   │   ├── tests/
-│   │   ├── package.json
-│   │   └── README.md
-│   │
-│   ├── ranking/                 # @clawacademy/ranking
-│   ├── rating/                  # @clawacademy/rating
-│   ├── payment/                 # @clawacademy/payment
-│   ├── rate-limiter/            # @clawacademy/rate-limiter
-│   └── agent-sdk/               # @clawacademy/agent-sdk
-│
-├── apps/                        # 应用
-│   ├── web/                     # Next.js 前端
-│   │   ├── src/
-│   │   │   ├── app/
-│   │   │   ├── components/
-│   │   │   └── ...
 │   │   └── package.json
 │   │
-│   └── api/                     # API 服务（或集成在 web 中）
+│   ├── skills/                  # @awa/skills
+│   ├── ranking/                 # @awa/ranking
+│   ├── rating/                  # @awa/rating
+│   ├── payment/                 # @awa/payment (Agent 自动支付)
+│   ├── rate-limiter/            # @awa/rate-limiter
+│   └── agent-sdk/               # @awa/agent-sdk
 │
 ├── docs/                        # 文档
 ├── turbo.json                   # Turborepo 配置
@@ -137,38 +137,36 @@ claw-academy/
 
 ---
 
-## Monorepo 工具选择
+## Monorepo 工具
 
-| 工具 | 优点 | 缺点 |
-|------|------|------|
-| **Turborepo** ✓ | Vercel 官方、快、缓存好 | 功能相对简单 |
-| Nx | 功能强大、插件多 | 学习曲线陡 |
-| Lerna | 成熟稳定 | 维护不活跃 |
-
-**选择 Turborepo** - 与 Next.js/Vercel 生态契合
+| 工具 | 说明 |
+|------|------|
+| **Turborepo** | 构建系统，缓存优化 |
+| **pnpm** | 包管理，节省磁盘空间 |
 
 ---
 
 ## 依赖关系
 
 ```
-@clawacademy/agent-sdk
-    └── @clawacademy/auth (API Key 验证)
+@awa/agent-sdk
+    └── @awa/auth (API Key 验证)
 
-@clawacademy/skills
-    ├── @clawacademy/rating (评分数据)
-    └── @clawacademy/ranking (排序)
+@awa/skills
+    ├── @awa/rating (评分数据)
+    └── @awa/ranking (排序)
 
-@clawacademy/payment
-    └── @clawacademy/skills (购买技能)
+@awa/payment
+    ├── @awa/auth (Agent 验证)
+    └── @awa/skills (购买技能)
 
-claw-academy-web
-    ├── @clawacademy/auth
-    ├── @clawacademy/skills
-    ├── @clawacademy/ranking
-    ├── @clawacademy/rating
-    ├── @clawacademy/payment
-    └── @clawacademy/rate-limiter
+awa-web
+    ├── @awa/auth
+    ├── @awa/skills
+    ├── @awa/ranking
+    ├── @awa/rating
+    ├── @awa/payment
+    └── @awa/rate-limiter
 ```
 
 ---
@@ -183,37 +181,25 @@ interface SkillAdapter {
   getSkill(id: string): Promise<Skill | null>;
   getSkills(query: SkillQuery): Promise<Skill[]>;
   createSkill(skill: CreateSkillInput): Promise<Skill>;
-  updateSkill(id: string, data: UpdateSkillInput): Promise<Skill>;
-  deleteSkill(id: string): Promise<void>;
 }
 
 // Supabase 实现
-class SupabaseSkillAdapter implements SkillAdapter {
-  constructor(private supabase: SupabaseClient) {}
-  // ...实现
-}
+class SupabaseSkillAdapter implements SkillAdapter { }
 
 // 内存实现（测试用）
-class InMemorySkillAdapter implements SkillAdapter {
-  private skills: Map<string, Skill> = new Map();
-  // ...实现
-}
+class InMemorySkillAdapter implements SkillAdapter { }
 ```
 
-### 2. Express/Next.js 中间件
+### 2. Next.js 中间件
 
 ```typescript
-// 所有包提供开箱即用的中间件
-import { authMiddleware } from '@clawacademy/auth';
-import { rateLimitMiddleware } from '@clawacademy/rate-limiter';
+import { authMiddleware } from '@awa/auth';
+import { rateLimitMiddleware } from '@awa/rate-limiter';
 
 // Next.js API Route
-export const GET = authMiddleware(async (req, user) => {
-  // user 已验证
+export const GET = authMiddleware(async (req, { agent }) => {
+  // agent 已验证
 });
-
-// Express
-app.use('/api', rateLimitMiddleware({ max: 100 }));
 ```
 
 ### 3. TypeScript 优先
@@ -227,12 +213,6 @@ export interface Skill {
 }
 
 export type SkillCategory = 'research' | 'finance' | 'coding' | ...;
-
-export interface CreateSkillInput {
-  name: string;
-  category: SkillCategory;
-  // ...
-}
 ```
 
 ---
@@ -242,12 +222,8 @@ export interface CreateSkillInput {
 ### 初始化 Monorepo
 
 ```bash
-# 创建项目
-pnpm create turbo@latest claw-academy
-
-# 添加包
-cd claw-academy
-pnpm create @clawacademy/auth --template typescript
+# 安装 pnpm
+npm install -g pnpm
 
 # 安装依赖
 pnpm install
@@ -262,24 +238,48 @@ pnpm test
 pnpm build
 ```
 
-### 发布流程
+---
 
-```bash
-# 版本管理
-pnpm changeset
+## CI/CD
 
-# 发布到 npm
-pnpm changeset publish
+> GitHub Actions 负责测试，Vercel 自动部署
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm lint
+      - run: pnpm test
+
+# Vercel 自动部署（连接 GitHub 仓库后自动触发）
 ```
 
 ---
 
 ## 下一步
 
-1. [x] 完成架构设计文档
-2. [ ] 设计各包详细 API - [packages/](./packages/)
-3. [ ] 初始化 Turborepo 项目
-4. [ ] 实现 @clawacademy/auth
-5. [ ] 实现 @clawacademy/skills
-6. [ ] 实现 @clawacademy/agent-sdk
-7. [ ] 实现应用层
+1. [ ] 初始化 Turborepo 项目
+2. [ ] 实现 @awa/auth
+3. [ ] 实现 @awa/skills
+4. [ ] 实现 @awa/payment
+5. [ ] 实现 @awa/agent-sdk
+6. [ ] 实现应用层

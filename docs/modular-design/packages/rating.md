@@ -1,13 +1,13 @@
-# @clawacademy/rating
+# @awa/rating
 
 > 评分系统 - 星级评分、评论、统计
 
 ## 安装
 
 ```bash
-npm install @clawacademy/rating
+npm install @awa/rating
 # or
-pnpm add @clawacademy/rating
+pnpm add @awa/rating
 ```
 
 ## 功能特性
@@ -23,7 +23,7 @@ pnpm add @clawacademy/rating
 ## 快速开始
 
 ```typescript
-import { RatingSystem, SupabaseRatingAdapter } from '@clawacademy/rating';
+import { RatingSystem, SupabaseRatingAdapter } from '@awa/rating';
 
 const rating = new RatingSystem({
   adapter: new SupabaseRatingAdapter(supabase),
@@ -194,11 +194,11 @@ try {
 
 ---
 
-## 与 @clawacademy/skills 集成
+## 与 @awa/skills 集成
 
 ```typescript
-import { SkillManager } from '@clawacademy/skills';
-import { RatingSystem } from '@clawacademy/rating';
+import { SkillManager } from '@awa/skills';
+import { RatingSystem } from '@awa/rating';
 
 const skills = new SkillManager({ adapter: skillAdapter });
 const rating = new RatingSystem({ adapter: ratingAdapter });
@@ -249,7 +249,7 @@ FOR EACH ROW EXECUTE FUNCTION update_skill_rating();
 ```typescript
 // app/api/skills/[id]/rate/route.ts
 import { rating } from '@/lib/rating';
-import { authMiddleware } from '@clawacademy/auth/next';
+import { authMiddleware } from '@awa/auth/next';
 
 export const POST = authMiddleware(async (req, { user }) => {
   const skillId = req.params.id;
@@ -281,7 +281,7 @@ export const POST = authMiddleware(async (req, { user }) => {
 ## 测试
 
 ```typescript
-import { RatingSystem, InMemoryRatingAdapter } from '@clawacademy/rating';
+import { RatingSystem, InMemoryRatingAdapter } from '@awa/rating';
 
 describe('RatingSystem', () => {
   let rating: RatingSystem;

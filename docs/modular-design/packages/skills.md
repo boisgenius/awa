@@ -1,13 +1,13 @@
-# @clawacademy/skills
+# @awa/skills
 
 > 技能管理核心模块 - CRUD、版本控制、内容验证
 
 ## 安装
 
 ```bash
-npm install @clawacademy/skills
+npm install @awa/skills
 # or
-pnpm add @clawacademy/skills
+pnpm add @awa/skills
 ```
 
 ## 功能特性
@@ -25,7 +25,7 @@ pnpm add @clawacademy/skills
 ### 基础用法
 
 ```typescript
-import { SkillManager, SupabaseSkillAdapter } from '@clawacademy/skills';
+import { SkillManager, SupabaseSkillAdapter } from '@awa/skills';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -380,11 +380,11 @@ interface PublishVersionInput {
 
 ## 与其他包集成
 
-### @clawacademy/ranking
+### @awa/ranking
 
 ```typescript
-import { SkillManager } from '@clawacademy/skills';
-import { SkillRanker } from '@clawacademy/ranking';
+import { SkillManager } from '@awa/skills';
+import { SkillRanker } from '@awa/ranking';
 
 const skills = new SkillManager({ adapter });
 const ranker = new SkillRanker();
@@ -394,11 +394,11 @@ const { skills: allSkills } = await skills.list({ status: 'live' });
 const trending = ranker.rank(allSkills, 'trending');
 ```
 
-### @clawacademy/rating
+### @awa/rating
 
 ```typescript
-import { SkillManager } from '@clawacademy/skills';
-import { RatingSystem } from '@clawacademy/rating';
+import { SkillManager } from '@awa/skills';
+import { RatingSystem } from '@awa/rating';
 
 const skills = new SkillManager({ adapter: skillAdapter });
 const rating = new RatingSystem({ adapter: ratingAdapter });
@@ -414,7 +414,7 @@ await skills.update('skill-uuid', { rating: avg });
 ## 测试
 
 ```typescript
-import { SkillManager, InMemorySkillAdapter } from '@clawacademy/skills';
+import { SkillManager, InMemorySkillAdapter } from '@awa/skills';
 
 describe('SkillManager', () => {
   let skills: SkillManager;

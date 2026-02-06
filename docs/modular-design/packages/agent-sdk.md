@@ -1,22 +1,20 @@
-# @clawacademy/agent-sdk
+# @awa/agent-sdk
 
-> OpenClaw Agent 开发 SDK - 让 AI Agent 接入 Claw Academy
+> OpenClaw Agent 开发 SDK - 让 AI Agent 接入 AWA
 
 ## 安装
 
 ```bash
-npm install @clawacademy/agent-sdk
-# or
-pnpm add @clawacademy/agent-sdk
+pnpm add @awa/agent-sdk
 ```
 
 ## 功能特性
 
 - **Agent 注册** - 自动注册并获取 claim token
 - **技能获取** - 读取已购买的技能内容
+- **自动购买** - 使用绑定钱包自动支付
 - **认证管理** - API Key 安全存储
 - **TypeScript** - 完整类型支持
-- **多平台** - Node.js / Deno / Bun
 
 ---
 
@@ -25,33 +23,34 @@ pnpm add @clawacademy/agent-sdk
 ### 初始化
 
 ```typescript
-import { ClawAgent } from '@clawacademy/agent-sdk';
+import { AwaAgent } from '@awa/agent-sdk';
 
-const agent = new ClawAgent({
-  apiKey: process.env.CLAW_API_KEY,
+const agent = new AwaAgent({
+  apiKey: process.env.AWA_API_KEY,
   // 或从文件读取
-  // apiKeyFile: '~/.claw/credentials',
+  // apiKeyFile: '~/.awa/credentials',
 });
 ```
 
 ### 注册新 Agent
 
 ```typescript
-import { ClawAgent } from '@clawacademy/agent-sdk';
+import { AwaAgent } from '@awa/agent-sdk';
 
-// 1. 创建未认领的 Agent
-const registration = await ClawAgent.register({
+// 1. 创建未认领的 Agent（需要提供钱包信息）
+const registration = await AwaAgent.register({
   name: 'MyResearchAgent',
   type: 'openclaw',
+  walletPrivateKey: 'xxx',  // Agent 的钱包私钥（会加密存储）
 });
 
 console.log('Claim your agent at:', registration.claimUrl);
 console.log('Tweet this to verify:', registration.tweetTemplate);
-// "I'm claiming my @ClawAcademy agent. Token: abc123"
+// "I'm claiming my @AWAcademy agent. Token: abc123"
 
 // 2. 用户完成认领后，使用 API Key
-const agent = new ClawAgent({
-  apiKey: registration.apiKey, // 认领后获得
+const agent = new AwaAgent({
+  apiKey: registration.apiKey,
 });
 ```
 
@@ -65,51 +64,48 @@ for (const skill of skills) {
   console.log(`${skill.name} (v${skill.version})`);
 }
 
-// 获取技能详情
-const skill = await agent.skills.get('skill-uuid');
-console.log(skill.name, skill.description);
-
 // 获取技能内容（Markdown）
 const content = await agent.skills.getContent('skill-uuid');
 console.log(content);
-// # Research Master Pro
-// ## 概述
-// ...
 
 // 检查是否有权限
 const hasAccess = await agent.skills.hasAccess('skill-uuid');
 ```
 
-### 学习技能
+### 自动购买技能
 
 ```typescript
-// Agent "学习" 技能 = 读取 Markdown 内容
-const content = await agent.skills.getContent('research-master-pro');
+// 使用绑定的钱包自动购买
+const result = await agent.skills.purchase('skill-uuid');
 
-// 将内容注入到 Agent 的上下文中
-// 这取决于你的 Agent 框架实现
-myAgent.addToContext(content);
+if (result.success) {
+  console.log('Purchased! TX:', result.transactionSignature);
+  console.log('Content:', result.skillContent);
+} else {
+  console.error('Failed:', result.error);
+}
 
-// 或者使用便捷方法
-const instructions = await agent.skills.getInstructions('research-master-pro');
-// 返回格式化后的指令文本
+// 查询钱包余额
+const balance = await agent.wallet.getBalance();
+console.log('Balance:', balance, 'SOL');
 ```
 
 ---
 
 ## API 参考
 
-### ClawAgent
+### AwaAgent
 
 ```typescript
-class ClawAgent {
-  constructor(options: ClawAgentOptions);
+class AwaAgent {
+  constructor(options: AwaAgentOptions);
 
   // 静态方法
   static register(params: RegisterParams): Promise<RegistrationResult>;
 
   // 属性
   readonly skills: SkillsAPI;
+  readonly wallet: WalletAPI;
   readonly profile: ProfileAPI;
 
   // 方法
@@ -131,29 +127,29 @@ interface SkillsAPI {
   // 获取技能内容
   getContent(idOrSlug: string): Promise<string>;
 
-  // 获取格式化指令
-  getInstructions(idOrSlug: string): Promise<string>;
-
   // 检查访问权限
   hasAccess(idOrSlug: string): Promise<boolean>;
 
-  // 搜索技能（仅已购买的）
+  // 自动购买技能
+  purchase(idOrSlug: string): Promise<PurchaseResult>;
+
+  // 搜索技能
   search(query: string): Promise<AgentSkill[]>;
 }
 ```
 
-### ProfileAPI
+### WalletAPI
 
 ```typescript
-interface ProfileAPI {
-  // 获取 Agent 信息
-  me(): Promise<AgentProfile>;
+interface WalletAPI {
+  // 获取钱包余额
+  getBalance(): Promise<number>;
 
-  // 获取 Owner 信息
-  owner(): Promise<OwnerProfile>;
+  // 获取钱包地址
+  getAddress(): Promise<string>;
 
-  // 更新 Agent 状态
-  updateStatus(status: AgentStatus): Promise<void>;
+  // 获取交易历史
+  getTransactions(): Promise<Transaction[]>;
 }
 ```
 
@@ -162,16 +158,17 @@ interface ProfileAPI {
 ## 类型定义
 
 ```typescript
-interface ClawAgentOptions {
+interface AwaAgentOptions {
   apiKey?: string;
   apiKeyFile?: string;
-  baseUrl?: string;        // 默认 'https://api.claw.academy'
+  baseUrl?: string;        // 默认 'https://api.awa.academy'
   timeout?: number;        // 默认 30000ms
 }
 
 interface RegisterParams {
   name: string;
   type?: string;           // 默认 'openclaw'
+  walletPrivateKey: string; // Agent 的钱包私钥
 }
 
 interface RegistrationResult {
@@ -179,6 +176,7 @@ interface RegistrationResult {
   claimUrl: string;
   tweetTemplate: string;
   expiresAt: number;
+  walletAddress: string;   // 绑定的钱包地址
   apiKey?: string;         // 认领后才有
 }
 
@@ -189,27 +187,18 @@ interface AgentSkill {
   description: string;
   category: string;
   version: string;
+  price: number;
+  currency: string;
   features: string[];
   hasAccess: boolean;
 }
 
-interface AgentProfile {
-  id: string;
-  name: string;
-  type: string;
-  isActive: boolean;
-  claimedAt: Date;
-  lastSeenAt: Date;
+interface PurchaseResult {
+  success: boolean;
+  transactionSignature?: string;
+  skillContent?: string;
+  error?: string;
 }
-
-interface OwnerProfile {
-  id: string;
-  walletAddress: string;
-  twitterHandle?: string;
-  purchasedSkills: number;
-}
-
-type AgentStatus = 'online' | 'offline' | 'busy';
 ```
 
 ---
@@ -220,22 +209,33 @@ type AgentStatus = 'online' | 'offline' | 'busy';
 
 ```typescript
 // openclaw-agent.ts
-import { ClawAgent } from '@clawacademy/agent-sdk';
+import { AwaAgent } from '@awa/agent-sdk';
 import { OpenClawAgent } from 'openclaw';
 
-const claw = new ClawAgent({
-  apiKey: process.env.CLAW_API_KEY,
+const awa = new AwaAgent({
+  apiKey: process.env.AWA_API_KEY,
 });
 
 const agent = new OpenClawAgent({
   name: 'ResearchBot',
   async onInit() {
     // 加载所有已购买的技能
-    const skills = await claw.skills.list();
+    const skills = await awa.skills.list();
 
     for (const skill of skills) {
-      const content = await claw.skills.getContent(skill.id);
-      this.addSkill(skill.name, content);
+      if (skill.hasAccess) {
+        const content = await awa.skills.getContent(skill.id);
+        this.addSkill(skill.name, content);
+      }
+    }
+  },
+  async onRequest(request) {
+    // 按需购买新技能
+    if (request.includes('trading') && !await awa.skills.hasAccess('trading-pro')) {
+      const result = await awa.skills.purchase('trading-pro');
+      if (result.success) {
+        this.addSkill('trading-pro', result.skillContent);
+      }
     }
   },
 });
@@ -243,63 +243,62 @@ const agent = new OpenClawAgent({
 agent.start();
 ```
 
-### 按需加载技能
-
-```typescript
-const agent = new ClawAgent({ apiKey });
-
-// 用户请求时动态加载
-async function handleUserRequest(request: string) {
-  // 判断需要什么技能
-  if (request.includes('research')) {
-    const content = await agent.skills.getContent('research-master-pro');
-    return processWithSkill(content, request);
-  }
-
-  if (request.includes('code')) {
-    const content = await agent.skills.getContent('solana-dev-expert');
-    return processWithSkill(content, request);
-  }
-}
-```
-
 ### CLI 工具
 
 ```typescript
 #!/usr/bin/env node
-import { ClawAgent } from '@clawacademy/agent-sdk';
+import { AwaAgent } from '@awa/agent-sdk';
 import { Command } from 'commander';
 
 const program = new Command();
 
 program
   .command('register <name>')
+  .option('-k, --private-key <key>', 'Wallet private key')
   .description('Register a new agent')
-  .action(async (name) => {
-    const result = await ClawAgent.register({ name });
+  .action(async (name, options) => {
+    const result = await AwaAgent.register({
+      name,
+      walletPrivateKey: options.privateKey,
+    });
     console.log('Claim URL:', result.claimUrl);
-    console.log('Tweet:', result.tweetTemplate);
+    console.log('Wallet:', result.walletAddress);
   });
 
 program
   .command('skills')
   .description('List available skills')
   .action(async () => {
-    const agent = new ClawAgent({ apiKeyFile: '~/.claw/credentials' });
+    const agent = new AwaAgent({ apiKeyFile: '~/.awa/credentials' });
     const skills = await agent.skills.list();
 
     for (const skill of skills) {
-      console.log(`- ${skill.name} (${skill.category})`);
+      const status = skill.hasAccess ? '[owned]' : `[${skill.price} SOL]`;
+      console.log(`- ${skill.name} ${status}`);
     }
   });
 
 program
-  .command('learn <skill>')
-  .description('Get skill content')
+  .command('buy <skill>')
+  .description('Purchase a skill')
   .action(async (skill) => {
-    const agent = new ClawAgent({ apiKeyFile: '~/.claw/credentials' });
-    const content = await agent.skills.getContent(skill);
-    console.log(content);
+    const agent = new AwaAgent({ apiKeyFile: '~/.awa/credentials' });
+    const result = await agent.skills.purchase(skill);
+
+    if (result.success) {
+      console.log('Purchased! TX:', result.transactionSignature);
+    } else {
+      console.error('Failed:', result.error);
+    }
+  });
+
+program
+  .command('balance')
+  .description('Check wallet balance')
+  .action(async () => {
+    const agent = new AwaAgent({ apiKeyFile: '~/.awa/credentials' });
+    const balance = await agent.wallet.getBalance();
+    console.log('Balance:', balance, 'SOL');
   });
 
 program.parse();
@@ -311,21 +310,22 @@ program.parse();
 
 ```typescript
 import {
-  ClawAgent,
+  AwaAgent,
   AuthenticationError,
   SkillNotFoundError,
   AccessDeniedError,
-} from '@clawacademy/agent-sdk';
+  InsufficientBalanceError,
+} from '@awa/agent-sdk';
 
 try {
-  const content = await agent.skills.getContent('premium-skill');
+  const result = await agent.skills.purchase('premium-skill');
 } catch (error) {
   if (error instanceof AuthenticationError) {
     console.error('Invalid API key');
   } else if (error instanceof SkillNotFoundError) {
     console.error('Skill does not exist');
-  } else if (error instanceof AccessDeniedError) {
-    console.error('Skill not purchased');
+  } else if (error instanceof InsufficientBalanceError) {
+    console.error('Not enough SOL in wallet');
   }
 }
 ```
@@ -338,75 +338,68 @@ try {
 
 ```typescript
 // 不要硬编码
-const agent = new ClawAgent({
-  apiKey: 'claw_abc123...', // ❌ 不安全
+const agent = new AwaAgent({
+  apiKey: 'awa_abc123...', // ❌ 不安全
 });
 
 // 使用环境变量
-const agent = new ClawAgent({
-  apiKey: process.env.CLAW_API_KEY, // ✅
+const agent = new AwaAgent({
+  apiKey: process.env.AWA_API_KEY, // ✅
 });
 
 // 或使用文件
-const agent = new ClawAgent({
-  apiKeyFile: '~/.claw/credentials', // ✅
+const agent = new AwaAgent({
+  apiKeyFile: '~/.awa/credentials', // ✅
 });
 ```
 
 ### 权限范围
 
-Agent SDK 只有 **只读** 权限：
+Agent SDK 权限：
 - ✅ 读取已购买的技能
-- ✅ 获取 Agent/Owner 信息
-- ❌ 不能发帖（与 Moltbook 不同）
-- ❌ 不能修改数据
-- ❌ 不能访问未购买的技能
+- ✅ 购买新技能（自动支付）
+- ✅ 查询钱包余额
+- ❌ 不能发帖
+- ❌ 不能修改他人数据
+- ❌ 不能访问未购买的技能内容
 
 ---
 
 ## 测试
 
 ```typescript
-import { ClawAgent, MockClawApi } from '@clawacademy/agent-sdk/testing';
+import { AwaAgent, MockAwaApi } from '@awa/agent-sdk/testing';
 
-describe('ClawAgent', () => {
-  let agent: ClawAgent;
-  let mockApi: MockClawApi;
+describe('AwaAgent', () => {
+  let agent: AwaAgent;
+  let mockApi: MockAwaApi;
 
   beforeEach(() => {
-    mockApi = new MockClawApi();
+    mockApi = new MockAwaApi();
     mockApi.addSkill({
       id: 'test-skill',
       name: 'Test Skill',
+      price: 1,
       content: '# Test\n\nThis is a test skill.',
     });
+    mockApi.setBalance(10); // 10 SOL
 
-    agent = new ClawAgent({
+    agent = new AwaAgent({
       apiKey: 'test-key',
       baseUrl: mockApi.url,
     });
   });
 
-  it('lists available skills', async () => {
-    const skills = await agent.skills.list();
-    expect(skills).toHaveLength(1);
-    expect(skills[0].name).toBe('Test Skill');
+  it('purchases skill automatically', async () => {
+    const result = await agent.skills.purchase('test-skill');
+
+    expect(result.success).toBe(true);
+    expect(result.skillContent).toContain('# Test');
   });
 
-  it('gets skill content', async () => {
-    const content = await agent.skills.getContent('test-skill');
-    expect(content).toContain('# Test');
+  it('checks balance', async () => {
+    const balance = await agent.wallet.getBalance();
+    expect(balance).toBe(10);
   });
 });
 ```
-
----
-
-## 未来计划
-
-- [ ] Swift SDK (`MoltbookSDK` 风格)
-- [ ] Kotlin SDK
-- [ ] Python SDK
-- [ ] 技能缓存
-- [ ] 离线模式
-- [ ] WebSocket 实时更新

@@ -1,69 +1,50 @@
-# @clawacademy/auth
+# @awa/auth
 
-> 钱包认证 + Agent API Key 管理
+> Agent API Key 认证模块（无需用户钱包登录）
 
 ## 安装
 
 ```bash
-npm install @clawacademy/auth
-# or
-pnpm add @clawacademy/auth
+pnpm add @awa/auth
 ```
 
 ## 功能特性
 
-- **钱包认证** - Solana 钱包签名验证
 - **Agent API Key** - 生成、验证、吊销
+- **钱包绑定** - Agent 绑定钱包用于自动支付
 - **Claim Token** - Agent 认领流程
-- **中间件** - Express/Next.js 开箱即用
+- **中间件** - Next.js 开箱即用
 - **类型安全** - 完整 TypeScript 支持
 
 ---
 
 ## 快速开始
 
-### 钱包认证
+### Agent API Key 认证
 
 ```typescript
-import { ClawAuth, SupabaseAuthAdapter } from '@clawacademy/auth';
+import { AwaAuth, SupabaseAuthAdapter } from '@awa/auth';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const auth = new ClawAuth({
+const auth = new AwaAuth({
   adapter: new SupabaseAuthAdapter(supabase),
   jwtSecret: process.env.JWT_SECRET,
 });
 
-// 1. 生成 nonce
-const { nonce, expiresAt } = await auth.generateNonce(walletAddress);
-
-// 2. 验证签名
-const { user, token } = await auth.verifyWalletSignature({
-  walletAddress,
-  signature,
-  nonce,
-});
-
-// 3. 验证 JWT
-const user = await auth.verifyToken(token);
-```
-
-### Agent API Key
-
-```typescript
 // 生成 API Key（只显示一次）
 const { apiKey, prefix } = await auth.generateAgentApiKey(agentId);
-// apiKey: "claw_a1b2c3d4e5f6..."
-// prefix: "claw_a1b2c3d4"
+// apiKey: "awa_a1b2c3d4e5f6..."
+// prefix: "awa_a1b2c3d4"
 
 // 验证 API Key
 const agent = await auth.verifyAgentApiKey(apiKey);
 
+// 获取 Agent 绑定的钱包
+const wallet = await auth.getAgentWallet(agentId);
+
 // 吊销 API Key
 await auth.revokeAgentApiKey(agentId);
-
-// 重新生成
-const { apiKey: newKey } = await auth.regenerateAgentApiKey(agentId);
 ```
 
 ### Claim Token（Agent 认领）
@@ -73,11 +54,13 @@ const { apiKey: newKey } = await auth.regenerateAgentApiKey(agentId);
 const { claimToken, claimUrl } = await auth.createClaimToken({
   agentName: 'MyAgent',
   agentType: 'openclaw',
+  walletPublicKey: 'xxx',      // Agent 绑定的钱包公钥
+  walletEncryptedKey: 'xxx',   // 加密的私钥
 });
-// claimUrl: "https://claw.academy/claim?token=xxx"
+// claimUrl: "https://awa.academy/claim?token=xxx"
 
 // 2. 用户发推文验证
-// "I'm claiming my @ClawAcademy agent. Token: xxx"
+// "I'm claiming my @AWAcademy agent. Token: xxx"
 
 // 3. 验证推文并绑定
 const agent = await auth.claimAgent({
@@ -94,73 +77,35 @@ const agent = await auth.claimAgent({
 ### Next.js App Router
 
 ```typescript
-// middleware.ts
-import { withAuth } from '@clawacademy/auth/next';
+// app/api/agent/skills/route.ts
+import { agentAuthMiddleware } from '@awa/auth/next';
 
-export default withAuth({
-  publicPaths: ['/', '/api/health'],
-});
-
-// app/api/protected/route.ts
-import { authMiddleware } from '@clawacademy/auth/next';
-
-export const GET = authMiddleware(async (req, { user }) => {
-  return Response.json({ user });
-});
-```
-
-### Next.js API Route (Agent)
-
-```typescript
-import { agentAuthMiddleware } from '@clawacademy/auth/next';
-
-export const GET = agentAuthMiddleware(async (req, { agent, owner }) => {
-  // agent: Agent 信息
-  // owner: Agent 所有者信息
+export const GET = agentAuthMiddleware(async (req, { agent }) => {
+  // agent 已验证
+  // agent.walletPublicKey 可用于支付
   return Response.json({ agent });
 });
-```
-
-### Express
-
-```typescript
-import express from 'express';
-import { expressAuthMiddleware, expressAgentMiddleware } from '@clawacademy/auth';
-
-const app = express();
-
-// 用户认证
-app.use('/api/user', expressAuthMiddleware(auth));
-
-// Agent 认证
-app.use('/api/agent', expressAgentMiddleware(auth));
 ```
 
 ---
 
 ## API 参考
 
-### ClawAuth
+### AwaAuth
 
 ```typescript
-class ClawAuth {
-  constructor(options: ClawAuthOptions);
-
-  // Nonce 管理
-  generateNonce(walletAddress: string): Promise<NonceResult>;
-
-  // 钱包认证
-  verifyWalletSignature(params: VerifyParams): Promise<AuthResult>;
-
-  // JWT
-  verifyToken(token: string): Promise<User>;
-  refreshToken(token: string): Promise<string>;
+class AwaAuth {
+  constructor(options: AwaAuthOptions);
 
   // Agent API Key
   generateAgentApiKey(agentId: string): Promise<ApiKeyResult>;
   verifyAgentApiKey(apiKey: string): Promise<Agent | null>;
   revokeAgentApiKey(agentId: string): Promise<void>;
   regenerateAgentApiKey(agentId: string): Promise<ApiKeyResult>;
+
+  // Agent 钱包
+  getAgentWallet(agentId: string): Promise<WalletInfo>;
+  hasValidWallet(agentId: string): Promise<boolean>;
 
   // Claim Token
   createClaimToken(params: CreateClaimParams): Promise<ClaimResult>;
@@ -169,76 +114,36 @@ class ClawAuth {
 }
 ```
 
-### AuthAdapter 接口
-
-```typescript
-interface AuthAdapter {
-  // 用户
-  getUserByWallet(walletAddress: string): Promise<User | null>;
-  createUser(data: CreateUserInput): Promise<User>;
-  updateUser(id: string, data: UpdateUserInput): Promise<User>;
-
-  // Nonce
-  saveNonce(walletAddress: string, nonce: string, expiresAt: Date): Promise<void>;
-  getNonce(walletAddress: string): Promise<NonceRecord | null>;
-  deleteNonce(walletAddress: string): Promise<void>;
-
-  // Agent
-  getAgentById(id: string): Promise<Agent | null>;
-  getAgentByApiKeyPrefix(prefix: string): Promise<Agent | null>;
-  getAgentByClaimToken(token: string): Promise<Agent | null>;
-  createAgent(data: CreateAgentInput): Promise<Agent>;
-  updateAgent(id: string, data: UpdateAgentInput): Promise<Agent>;
-
-  // API Key
-  saveApiKeyHash(agentId: string, hash: string, prefix: string): Promise<void>;
-  verifyApiKeyHash(hash: string, apiKey: string): Promise<boolean>;
-}
-```
-
 ---
 
 ## 类型定义
 
 ```typescript
-interface User {
-  id: string;
-  walletAddress: string;
-  twitterHandle?: string;
-  isCreator: boolean;
-  isVerified: boolean;
-  createdAt: Date;
-}
-
 interface Agent {
   id: string;
   ownerId: string;
   agentName: string;
   agentType: string;
+  walletPublicKey: string;      // 绑定的钱包公钥
+  walletEncryptedKey: string;   // 加密存储的私钥
   isActive: boolean;
   claimedAt?: Date;
   lastSeenAt?: Date;
   createdAt: Date;
 }
 
-interface ClawAuthOptions {
+interface WalletInfo {
+  publicKey: string;
+  encryptedPrivateKey: string;
+  balance?: number;
+}
+
+interface AwaAuthOptions {
   adapter: AuthAdapter;
   jwtSecret: string;
-  jwtExpiresIn?: string;        // 默认 '7d'
-  nonceExpiresIn?: number;      // 默认 5 分钟（ms）
-  apiKeyPrefix?: string;        // 默认 'claw_'
+  apiKeyPrefix?: string;        // 默认 'awa_'
   apiKeyLength?: number;        // 默认 32 bytes
-}
-
-interface NonceResult {
-  nonce: string;
-  expiresAt: number;
-}
-
-interface AuthResult {
-  user: User;
-  token: string;
-  isNewUser: boolean;
+  walletEncryptionKey: string;  // 钱包私钥加密密钥
 }
 
 interface ApiKeyResult {
@@ -268,23 +173,17 @@ const hash = await bcrypt.hash(apiKey, 12);
 const isValid = await bcrypt.compare(apiKey, storedHash);
 ```
 
-### Nonce 防重放
+### 钱包私钥加密
 
 ```typescript
-// Nonce 一次性使用
-// 验证后立即删除
-await auth.verifyWalletSignature({ ... });
-// nonce 自动删除，无法重放
-```
+// 私钥使用 AES-256-GCM 加密存储
+import { encrypt, decrypt } from '@awa/auth/crypto';
 
-### JWT 配置
+// 加密存储
+const encryptedKey = encrypt(privateKey, WALLET_ENCRYPTION_KEY);
 
-```typescript
-// 推荐配置
-const auth = new ClawAuth({
-  jwtSecret: process.env.JWT_SECRET, // 至少 32 字符
-  jwtExpiresIn: '7d',                // 7 天过期
-});
+// 解密使用（仅在服务端）
+const privateKey = decrypt(encryptedKey, WALLET_ENCRYPTION_KEY);
 ```
 
 ---
@@ -292,28 +191,30 @@ const auth = new ClawAuth({
 ## 测试
 
 ```typescript
-import { ClawAuth, InMemoryAuthAdapter } from '@clawacademy/auth';
+import { AwaAuth, InMemoryAuthAdapter } from '@awa/auth';
 
-describe('ClawAuth', () => {
-  let auth: ClawAuth;
+describe('AwaAuth', () => {
+  let auth: AwaAuth;
 
   beforeEach(() => {
-    auth = new ClawAuth({
+    auth = new AwaAuth({
       adapter: new InMemoryAuthAdapter(),
       jwtSecret: 'test-secret',
+      walletEncryptionKey: 'test-encryption-key',
     });
-  });
-
-  it('generates valid nonce', async () => {
-    const { nonce, expiresAt } = await auth.generateNonce('wallet123');
-    expect(nonce).toHaveLength(32);
-    expect(expiresAt).toBeGreaterThan(Date.now());
   });
 
   it('generates agent API key', async () => {
     const { apiKey, prefix } = await auth.generateAgentApiKey('agent-1');
-    expect(apiKey).toMatch(/^claw_[a-f0-9]{64}$/);
+    expect(apiKey).toMatch(/^awa_[a-f0-9]{64}$/);
     expect(prefix).toBe(apiKey.slice(0, 12));
+  });
+
+  it('verifies agent API key', async () => {
+    const { apiKey } = await auth.generateAgentApiKey('agent-1');
+    const agent = await auth.verifyAgentApiKey(apiKey);
+    expect(agent).not.toBeNull();
+    expect(agent?.id).toBe('agent-1');
   });
 });
 ```
