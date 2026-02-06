@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* 背景色 */
+  --bg-primary: #000000;
+  --bg-secondary: #0D0D0D;
+  --bg-tertiary: #1A1A1A;
+  --bg-hover: #252525;
+  --bg-card: rgba(13, 13, 13, 0.9);
+  --bg-sidebar: #0E0E12;
+
+  /* 主题色 */
+  --crimson: #E40F3A;
+  --crimson-light: #FF4757;
+  --burgundy: #770524;
+  --crimson-glow: rgba(228, 15, 58, 0.4);
+
+  /* 功能色 */
+  --accent-secondary: #00FF88;
+  --accent-warning: #FFD93D;
+  --accent-danger: #FF4757;
+  --accent-info: #7C3AED;
+  --accent-teal: #00D9A0;
+
+  /* 文字色 */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-muted: #6B7280;
+
+  /* 边框 */
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(228, 15, 58, 0.4);
+
+  /* 间距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* 动画 */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease-out;
+
+  /* 布局 */
+  --sidebar-width: 220px;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
