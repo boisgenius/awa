@@ -1,4 +1,4 @@
-import { Header, Sidebar, AnnouncementBar } from '@/components/layout';
+import { Header, Sidebar, AnnouncementBar, Footer } from '@/components/layout';
 
 export default function DashboardLayout({
   children,
@@ -6,15 +6,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-bg-primary">
+    <div className="min-h-screen bg-bg-primary flex flex-col">
       <AnnouncementBar />
       <Header />
       <Sidebar />
-      <main className="ml-sidebar pt-16 min-h-[calc(100vh-4rem)]">
+      <main className="ml-sidebar pt-16 flex-1">
         <div className="p-6">
           {children}
         </div>
       </main>
+      <div className="ml-sidebar">
+        <Footer />
+      </div>
     </div>
   );
 }

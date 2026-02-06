@@ -33,6 +33,10 @@ const config: Config = {
         'text-primary': '#FFFFFF',
         'text-secondary': '#A0A0A0',
         'text-muted': '#6B7280',
+
+        // 边框色
+        'border-default': 'rgba(255, 255, 255, 0.1)',
+        'border-hover': 'rgba(228, 15, 58, 0.4)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
