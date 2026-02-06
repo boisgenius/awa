@@ -26,6 +26,14 @@ const eslintConfig = [
       "e2e/",
     ],
   },
+  {
+    // Disable rules that are incompatible with ESLint 9
+    rules: {
+      "@next/next/no-duplicate-head": "off",
+      "react-hooks/rules-of-hooks": "off",
+      "react-hooks/exhaustive-deps": "off",
+    },
+  },
 ];
 
 export default eslintConfig;

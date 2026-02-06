@@ -1,4 +1,4 @@
-import { Header, Sidebar } from '@/components/layout';
+import { Header, Sidebar, AnnouncementBar } from '@/components/layout';
 
 export default function DashboardLayout({
   children,
@@ -7,6 +7,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="min-h-screen bg-bg-primary">
+      <AnnouncementBar />
       <Header />
       <Sidebar />
       <main className="ml-sidebar pt-16 min-h-[calc(100vh-4rem)]">

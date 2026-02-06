@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SkillGrid, FilterBar } from '@/components/features';
+import { SkillGrid, FilterBar, StatsBar } from '@/components/features';
 import type { Skill, SkillCategory } from '@/lib/skills';
 
 // Mock data for development
@@ -10,7 +10,7 @@ const mockSkills: Skill[] = [
     id: '1',
     name: 'Web Research Pro',
     slug: 'web-research-pro',
-    authorId: 'author-1',
+    authorId: 'ClawCore',
     description: 'Advanced web research and information gathering capabilities with multi-source verification.',
     category: 'research',
     status: 'live',
@@ -30,7 +30,7 @@ const mockSkills: Skill[] = [
     id: '2',
     name: 'Code Review Assistant',
     slug: 'code-review-assistant',
-    authorId: 'author-2',
+    authorId: 'DevOpsAgent',
     description: 'Automated code review with best practices enforcement and security vulnerability detection.',
     category: 'coding',
     status: 'live',
@@ -50,7 +50,7 @@ const mockSkills: Skill[] = [
     id: '3',
     name: 'Financial Analyst',
     slug: 'financial-analyst',
-    authorId: 'author-3',
+    authorId: 'DeFiMaster',
     description: 'Comprehensive financial analysis including market trends, risk assessment, and portfolio optimization.',
     category: 'finance',
     status: 'live',
@@ -70,7 +70,7 @@ const mockSkills: Skill[] = [
     id: '4',
     name: 'Security Scanner',
     slug: 'security-scanner',
-    authorId: 'author-4',
+    authorId: 'SecureAI',
     description: 'Automated security vulnerability scanning and penetration testing toolkit.',
     category: 'security',
     status: 'dev',
@@ -90,7 +90,7 @@ const mockSkills: Skill[] = [
     id: '5',
     name: 'Creative Writer',
     slug: 'creative-writer',
-    authorId: 'author-5',
+    authorId: 'CreativeAI',
     description: 'AI-powered creative writing assistant for stories, scripts, and marketing copy.',
     category: 'creative',
     status: 'live',
@@ -110,7 +110,7 @@ const mockSkills: Skill[] = [
     id: '6',
     name: 'Communication Hub',
     slug: 'communication-hub',
-    authorId: 'author-6',
+    authorId: 'CommBot',
     description: 'Multi-platform communication management with automated responses and scheduling.',
     category: 'comms',
     status: 'live',
@@ -154,15 +154,34 @@ export default function MarketplacePage() {
 
   return (
     <div>
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-text-primary mb-2">
-          Skill Marketplace
+      {/* Hero Section */}
+      <div className="relative mb-6 overflow-hidden">
+        {/* Glow Effect */}
+        <div
+          className="absolute -top-[150px] -right-[150px] w-[500px] h-[500px] pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle, rgba(228, 15, 58, 0.2) 0%, transparent 70%)',
+          }}
+        />
+
+        {/* Badge */}
+        <span className="inline-block bg-crimson/15 border border-crimson text-crimson px-4 py-2 rounded-full text-xs font-medium mb-5">
+          Powered by OpenClaw
+        </span>
+
+        {/* Title */}
+        <h1 className="text-[clamp(28px,4vw,40px)] font-bold mb-3 font-sans leading-tight">
+          Train Your AI Agent <span className="text-crimson">Like Never Before</span>
         </h1>
-        <p className="text-text-secondary">
-          Discover and acquire AI skills to enhance your agents
+
+        {/* Description */}
+        <p className="text-base text-text-secondary max-w-[600px] leading-relaxed">
+          The premier marketplace for AI agent skills, prompts, and educational modules.
         </p>
       </div>
+
+      {/* Stats Bar */}
+      <StatsBar />
 
       {/* Filters */}
       <FilterBar
@@ -174,6 +193,13 @@ export default function MarketplacePage() {
 
       {/* Skills Grid */}
       <SkillGrid skills={sortedSkills} />
+
+      {/* Load More Button */}
+      <div className="text-center py-5 mb-6">
+        <button className="bg-bg-secondary border border-border-default text-text-secondary px-8 py-4 rounded-lg text-sm font-medium transition-all hover:border-crimson hover:text-crimson">
+          Load More Skills ↓
+        </button>
+      </div>
     </div>
   );
 }

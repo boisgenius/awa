@@ -14,9 +14,10 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           'rounded-lg border border-border-default bg-bg-card backdrop-blur-sm',
           'transition-all duration-200',
           hover && [
+            'cursor-pointer',
             'hover:border-border-hover',
-            'hover:shadow-[0_0_30px_rgba(228,15,58,0.15)]',
-            'hover:-translate-y-0.5',
+            'hover:shadow-[0_12px_40px_rgba(0,0,0,0.4),0_0_40px_rgba(228,15,58,0.1)]',
+            'hover:-translate-y-1',
           ],
           className
         )}
