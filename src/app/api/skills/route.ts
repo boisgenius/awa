@@ -145,10 +145,10 @@ async function mockValidateApiKey(key: string) {
       id: 'agent-1',
       name: 'Test Agent',
       apiKeyHash: 'hash',
-      apiKeyPrefix: 'claw_',
+      apiKeyPrefix: 'claw_sk_',
       walletPublicKey: 'wallet-public-key',
       walletEncryptedKey: 'encrypted',
-      isActive: true,
+      status: 'active' as const,
       createdAt: new Date(),
     };
   }

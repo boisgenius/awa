@@ -8,3 +8,10 @@ export {
   type AuthenticatedHandler,
   type ValidateApiKeyFn,
 } from './middleware';
+export * from './credentials';
+export {
+  RateLimiter,
+  getRateLimiter,
+  RATE_LIMITS,
+  createRateLimitHeaders,
+} from './rate-limiter';

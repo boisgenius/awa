@@ -1,8 +1,10 @@
-import { randomBytes, createHash } from 'crypto';
-import type { Agent, ApiKey, WalletInfo } from './types';
-
-const API_KEY_PREFIX = 'awa_';
-const API_KEY_LENGTH = 32;
+import type { Agent, WalletInfo } from './types';
+import {
+  generateApiKey as genApiKey,
+  hashApiKey,
+  getApiKeyPrefix,
+  isValidApiKeyFormat,
+} from './credentials';
 
 export interface AgentAuthAdapter {
   getAgentByApiKeyHash(hash: string): Promise<Agent | null>;
@@ -33,13 +35,10 @@ export class AgentAuth {
       throw new Error('Agent not found');
     }
 
-    // Generate random key
-    const randomPart = randomBytes(API_KEY_LENGTH).toString('hex');
-    const key = `${API_KEY_PREFIX}${randomPart}`;
-    const prefix = `${API_KEY_PREFIX}${randomPart.substring(0, 4)}`;
-
-    // Hash the key for storage
-    const keyHash = this.hashApiKey(key);
+    // Generate key using credentials module
+    const key = genApiKey();
+    const prefix = getApiKeyPrefix(key);
+    const keyHash = hashApiKey(key);
 
     // Save to database
     await this.adapter.saveApiKey(agentId, keyHash, prefix);
@@ -52,16 +51,16 @@ export class AgentAuth {
    */
   async validateApiKey(key: string): Promise<Agent | null> {
     // Check key format
-    if (!this.isValidKeyFormat(key)) {
+    if (!isValidApiKeyFormat(key)) {
       return null;
     }
 
     // Hash the key and lookup
-    const keyHash = this.hashApiKey(key);
+    const keyHash = hashApiKey(key);
     const agent = await this.adapter.getAgentByApiKeyHash(keyHash);
 
     // Check if agent exists and is active
-    if (!agent || !agent.isActive) {
+    if (!agent || agent.status !== 'active') {
       return null;
     }
 
@@ -90,17 +89,4 @@ export class AgentAuth {
     return wallet !== null;
   }
 
-  /**
-   * Hash an API key for secure storage
-   */
-  private hashApiKey(key: string): string {
-    return createHash('sha256').update(key).digest('hex');
-  }
-
-  /**
-   * Validate API key format
-   */
-  private isValidKeyFormat(key: string): boolean {
-    return key.startsWith(API_KEY_PREFIX) && key.length > API_KEY_PREFIX.length + 8;
-  }
 }

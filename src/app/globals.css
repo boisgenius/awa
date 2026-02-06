@@ -728,3 +728,233 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .search-box { display: none; }
   .filter-pills { overflow-x: auto; flex-wrap: nowrap; padding-bottom: var(--space-2); }
 }
+
+/* ============================================
+   CLAIM PAGE STYLES
+   ============================================ */
+
+.claim-section {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: var(--space-8);
+}
+
+.claim-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: var(--space-6);
+  text-align: center;
+}
+
+.claim-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--crimson);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.claim-error {
+  text-align: center;
+  padding: var(--space-8);
+}
+
+.error-icon {
+  width: 60px;
+  height: 60px;
+  background: var(--accent-danger);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 auto var(--space-4);
+}
+
+.agent-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+}
+
+.info-row .label {
+  color: var(--text-muted);
+}
+
+.info-row .value {
+  font-weight: 600;
+}
+
+.info-row .value.code {
+  font-family: var(--font-mono);
+  color: var(--crimson);
+  background: rgba(228, 15, 58, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.claim-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.claim-steps .step {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.claim-steps .step-num {
+  width: 32px;
+  height: 32px;
+  background: var(--crimson);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.claim-steps .step-content {
+  flex: 1;
+}
+
+.claim-steps .step-content h3 {
+  font-size: 16px;
+  margin-bottom: var(--space-2);
+}
+
+.claim-steps .step-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.btn-twitter {
+  background: #1DA1F2;
+  color: white;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.btn-twitter:hover {
+  background: #1a8cd8;
+}
+
+.tweet-input {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.tweet-input:focus {
+  outline: none;
+  border-color: var(--crimson);
+}
+
+.btn-primary {
+  background: var(--crimson);
+  color: white;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  transition: background var(--transition-fast);
+}
+
+.btn-primary:hover {
+  background: var(--crimson-light);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  color: var(--accent-danger);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-4);
+  text-align: center;
+}
+
+.claim-success {
+  text-align: center;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: var(--accent-secondary);
+  color: var(--bg-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 700;
+  margin: 0 auto var(--space-4);
+}
+
+.claim-success h1 {
+  font-size: 28px;
+  margin-bottom: var(--space-2);
+}
+
+.claim-success p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.success-subtitle {
+  color: var(--text-muted) !important;
+  margin-bottom: var(--space-6) !important;
+}
+
+.claim-success .btn-primary {
+  width: auto;
+  display: inline-block;
+  text-decoration: none;
+}

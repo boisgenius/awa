@@ -5,6 +5,14 @@ export {
   createTransferTransaction,
   signAndSendTransaction,
   verifyTransaction,
-  decryptPrivateKey,
   createKeypairFromPrivateKey,
 } from './client';
+
+// Wallet generation and encryption
+export {
+  generateAgentWallet,
+  decryptPrivateKey,
+  restoreKeypair,
+  isValidPublicKey,
+  type GeneratedWallet,
+} from './wallet';

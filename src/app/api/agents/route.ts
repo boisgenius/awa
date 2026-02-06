@@ -53,7 +53,7 @@ async function createAgent(name: string): Promise<Agent> {
     apiKeyPrefix: '',
     walletPublicKey: `wallet_${crypto.randomUUID().slice(0, 8)}`,
     walletEncryptedKey: `encrypted_${crypto.randomUUID()}`,
-    isActive: true,
+    status: 'active',
     createdAt: new Date(),
   };
   agentsStore.set(id, agent);

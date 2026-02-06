@@ -7,10 +7,10 @@ const mockAgents: Record<string, Agent> = {
     id: 'agent-1',
     name: 'Test Agent',
     apiKeyHash: 'hash',
-    apiKeyPrefix: 'awa_',
+    apiKeyPrefix: 'claw_sk_',
     walletPublicKey: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
     walletEncryptedKey: 'encrypted',
-    isActive: true,
+    status: 'active',
     createdAt: new Date('2024-01-01'),
   },
 };

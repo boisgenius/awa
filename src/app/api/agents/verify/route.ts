@@ -11,10 +11,10 @@ const testAgent: Agent = {
   id: 'agent-1',
   name: 'Test Agent',
   apiKeyHash: '', // Will be set dynamically
-  apiKeyPrefix: 'awa_',
+  apiKeyPrefix: 'claw_sk_',
   walletPublicKey: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
   walletEncryptedKey: 'encrypted-key',
-  isActive: true,
+  status: 'active',
   createdAt: new Date('2024-01-01'),
 };
 agentsStore.set(testAgent.id, testAgent);
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       agent: {
         id: agent.id,
         name: agent.name,
-        isActive: agent.isActive,
+        status: agent.status,
         createdAt: agent.createdAt,
       },
       wallet: wallet ? {

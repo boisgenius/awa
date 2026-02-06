@@ -7,20 +7,20 @@ const mockAgents: Record<string, Agent> = {
     id: 'agent-1',
     name: 'Test Agent',
     apiKeyHash: 'hash',
-    apiKeyPrefix: 'awa_',
+    apiKeyPrefix: 'claw_sk_',
     walletPublicKey: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
     walletEncryptedKey: 'encrypted',
-    isActive: true,
+    status: 'active',
     createdAt: new Date('2024-01-01'),
   },
   'agent-2': {
     id: 'agent-2',
     name: 'Production Agent',
     apiKeyHash: 'hash2',
-    apiKeyPrefix: 'awa_',
+    apiKeyPrefix: 'claw_sk_',
     walletPublicKey: 'Hx5KtG2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsX',
     walletEncryptedKey: 'encrypted',
-    isActive: true,
+    status: 'active',
     createdAt: new Date('2024-01-15'),
   },
 };
@@ -52,7 +52,7 @@ export async function GET(
       id: agent.id,
       name: agent.name,
       walletPublicKey: agent.walletPublicKey,
-      isActive: agent.isActive,
+      status: agent.status,
       createdAt: agent.createdAt,
     });
   } catch (error) {
