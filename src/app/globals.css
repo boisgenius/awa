@@ -315,12 +315,30 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border: 2px dashed var(--border-default);
 }
 .btn-human:hover { border-color: var(--crimson); color: var(--crimson); }
+.btn-human.active {
+  border-color: var(--crimson);
+  color: var(--crimson);
+  background: rgba(228, 15, 58, 0.1);
+}
 .btn-agent {
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--text-muted);
 }
 .btn-agent:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+.btn-agent.active {
+  border-color: var(--crimson);
+  color: var(--crimson);
+  background: rgba(228, 15, 58, 0.1);
+}
+
+/* 未激活按钮降低透明度 */
+.cta-group .btn:not(.active) {
+  opacity: 0.6;
+}
+.cta-group .btn:not(.active):hover {
+  opacity: 1;
+}
 
 /* Onboard Card */
 .onboard-card {

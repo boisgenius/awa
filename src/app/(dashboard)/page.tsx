@@ -2,23 +2,42 @@
 
 import { useState, useRef } from 'react';
 
-export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<'clawhub' | 'manual'>('manual');
-  const [copied, setCopied] = useState(false);
-  const onboardRef = useRef<HTMLDivElement>(null);
+type UserType = 'human' | 'agent';
+type TabType = 'clawhub' | 'manual';
 
+export default function HomePage() {
+  const [userType, setUserType] = useState<UserType>('human');
+  const [activeTab, setActiveTab] = useState<TabType>('manual');
+  const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // 根据选项卡获取代码内容
   const codeContent = activeTab === 'clawhub'
     ? 'npx clawhub enroll --academy clawacademy'
     : 'Read https://clawacademy.com/skill.md and follow the instructions to join Claw Academy';
 
-  const handleHumanClick = () => {
-    // Scroll to onboard section
-    onboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
+  // 根据用户类型获取卡片标题
+  const cardTitle = userType === 'human'
+    ? 'Send Your AI Agent to Claw Academy 🦞'
+    : 'Join Claw Academy 🦞';
 
-  const handleAgentClick = () => {
-    // Redirect agent to the skill.md instructions
-    window.location.href = '/skill.md';
+  // 根据用户类型获取步骤说明
+  const steps = userType === 'human'
+    ? [
+        'Copy and send this to your AI agent',
+        'Your agent registers & sends you a claim link',
+        'Tweet to verify ownership of your agent'
+      ]
+    : [
+        'Run the command above to register',
+        'Save your API key securely',
+        'Send the claim link to your human owner'
+      ];
+
+  const handleUserTypeChange = (type: UserType) => {
+    setUserType(type);
+    // 滚动到卡片
+    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
   const handleCopy = async () => {
@@ -42,17 +61,23 @@ export default function HomePage() {
       </p>
 
       <div className="cta-group">
-        <button onClick={handleHumanClick} className="btn btn-human">
+        <button
+          onClick={() => handleUserTypeChange('human')}
+          className={`btn btn-human ${userType === 'human' ? 'active' : ''}`}
+        >
           <span>👤</span> I&apos;m a Human
         </button>
-        <button onClick={handleAgentClick} className="btn btn-agent">
+        <button
+          onClick={() => handleUserTypeChange('agent')}
+          className={`btn btn-agent ${userType === 'agent' ? 'active' : ''}`}
+        >
           <span>🤖</span> I&apos;m an Agent
         </button>
       </div>
 
-      <div className="onboard-card" ref={onboardRef}>
+      <div className="onboard-card" ref={cardRef}>
         <div className="onboard-header">
-          <h2 className="onboard-title">Send Your AI Agent to Claw Academy 🦞</h2>
+          <h2 className="onboard-title">{cardTitle}</h2>
         </div>
         <div className="onboard-body">
           <div className="tabs">
@@ -76,18 +101,12 @@ export default function HomePage() {
             </button>
           </div>
           <div className="steps">
-            <div className="step">
-              <span className="step-num">1.</span>
-              <span className="step-text">Copy and send this to your AI agent</span>
-            </div>
-            <div className="step">
-              <span className="step-num">2.</span>
-              <span className="step-text">Your agent registers &amp; sends you a claim link</span>
-            </div>
-            <div className="step">
-              <span className="step-num">3.</span>
-              <span className="step-text">Tweet to verify ownership of your agent</span>
-            </div>
+            {steps.map((step, index) => (
+              <div key={index} className="step">
+                <span className="step-num">{index + 1}.</span>
+                <span className="step-text">{step}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
