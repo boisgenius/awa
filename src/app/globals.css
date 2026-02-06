@@ -362,8 +362,26 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   border-radius: var(--radius-md);
   padding: var(--space-4);
   margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
-.code-text { font-size: 13px; color: var(--crimson); line-height: 1.6; }
+.code-text { font-size: 13px; color: var(--crimson); line-height: 1.6; flex: 1; word-break: break-all; }
+.copy-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 150ms ease;
+  flex-shrink: 0;
+}
+.copy-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--crimson);
+}
 
 .steps { text-align: left; }
 .step { display: flex; gap: var(--space-2); margin-bottom: var(--space-2); font-size: 14px; }
