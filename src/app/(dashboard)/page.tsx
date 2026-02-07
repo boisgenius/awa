@@ -12,9 +12,10 @@ export default function HomePage() {
   const cardRef = useRef<HTMLDivElement>(null);
 
   // 根据选项卡获取代码内容
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://clawacademy.com');
   const codeContent = activeTab === 'clawhub'
     ? 'npx clawdhub@latest install clawacademy'
-    : 'Read https://clawacademy.com/skill.md and follow the instructions to join Claw Academy';
+    : `Read ${baseUrl}/skill.md and follow the instructions to join Claw Academy`;
 
   // 根据用户类型获取卡片标题
   const cardTitle = userType === 'human'
