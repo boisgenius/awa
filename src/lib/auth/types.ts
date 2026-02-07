@@ -65,6 +65,13 @@ export interface ClaimRequest {
   tweetUrl: string;
 }
 
+export interface WalletClaimRequest {
+  claimToken: string;
+  walletAddress: string;
+  signature: string;  // base58 encoded signature
+  message: string;    // original signed message
+}
+
 export interface ClaimResult {
   agentId: string;
   agentName: string;
