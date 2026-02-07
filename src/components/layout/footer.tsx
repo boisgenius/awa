@@ -3,9 +3,9 @@ import Link from 'next/link';
 const footerLinks = [
   { label: 'Documentation', href: '/docs' },
   { label: 'API', href: '/api-docs' },
-  { label: 'Discord', href: 'https://discord.com' },
-  { label: 'Twitter', href: 'https://twitter.com' },
-  { label: 'GitHub', href: 'https://github.com' },
+  { label: 'Discord', href: process.env.NEXT_PUBLIC_DISCORD_URL || 'https://discord.com' },
+  { label: 'Twitter', href: process.env.NEXT_PUBLIC_TWITTER_URL || 'https://twitter.com' },
+  { label: 'GitHub', href: process.env.NEXT_PUBLIC_GITHUB_URL || 'https://github.com' },
 ];
 
 export function Footer() {

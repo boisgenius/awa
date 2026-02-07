@@ -8,7 +8,7 @@ import { randomBytes, createCipheriv, createDecipheriv, scryptSync } from 'crypt
 
 // Encryption algorithm
 const ALGORITHM = 'aes-256-gcm';
-const SALT = 'claw_academy_salt'; // In production, use a unique salt per key
+const SALT = process.env.WALLET_ENCRYPTION_SALT || 'claw_academy_salt';
 const KEY_LENGTH = 32;
 const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;

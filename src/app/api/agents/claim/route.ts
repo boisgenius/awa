@@ -71,7 +71,7 @@ async function verifyTweet(
     try {
       // Fetch tweet from Twitter API
       const response = await fetch(
-        `https://api.twitter.com/2/tweets/${parsed.tweetId}?expansions=author_id&user.fields=username`,
+        `${process.env.TWITTER_API_BASE_URL || 'https://api.twitter.com/2'}/tweets/${parsed.tweetId}?expansions=author_id&user.fields=username`,
         {
           headers: {
             Authorization: `Bearer ${twitterBearerToken}`,

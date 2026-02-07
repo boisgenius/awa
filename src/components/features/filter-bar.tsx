@@ -14,10 +14,12 @@ const categories: { value: SkillCategory | 'all'; label: string; icon?: string; 
 ];
 
 const sortOptions = [
-  { value: 'trending', label: 'Sort: Trending' },
-  { value: 'newest', label: 'Sort: Newest' },
-  { value: 'price-low', label: 'Sort: Price Low' },
-  { value: 'price-high', label: 'Sort: Price High' },
+  { value: 'trending', label: 'Sort: Trending', hidden: false },
+  { value: 'newest', label: 'Sort: Newest', hidden: false },
+  { value: 'downloads', label: 'Sort: Most Downloads', hidden: false },
+  { value: 'rating', label: 'Sort: Highest Rated', hidden: false },
+  { value: 'price-low', label: 'Sort: Price Low', hidden: true },
+  { value: 'price-high', label: 'Sort: Price High', hidden: true },
 ];
 
 interface FilterBarProps {
@@ -57,7 +59,7 @@ export function FilterBar({
         className="bg-bg-secondary border-border-default text-text-secondary text-[13px]"
       >
         {sortOptions.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} hidden={option.hidden}>
             {option.label}
           </option>
         ))}

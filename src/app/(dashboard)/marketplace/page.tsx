@@ -1,36 +1,89 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { mockSkills, filterSkills, getCategoryCounts, categoryMeta } from '@/lib/skills/mock-data';
+import { useTokenData } from '@/lib/token/use-token-data';
+import { TOKEN_CONFIG } from '@/lib/token/config';
 
-// Skills data from prototype
-const skills = [
-  { id: 1, name: "Research Master Pro", author: "ClawCore", emoji: "🔬", gradient: "linear-gradient(135deg, #E40F3A, #770524)", description: "Advanced research techniques including web scraping, data synthesis, and academic citations.", status: "live", priority: "high", rating: 4.8, downloads: 1250, verified: true, starred: false, features: ["Web Scraping", "Data Synthesis", "Citations"] },
-  { id: 2, name: "Trading Strategist", author: "DeFiMaster", emoji: "📈", gradient: "linear-gradient(135deg, #00FF88, #00CC6A)", description: "Comprehensive crypto trading strategies with risk management and on-chain analysis.", status: "live", priority: "high", rating: 4.9, downloads: 890, verified: true, starred: true, features: ["DeFi", "Risk Mgmt", "On-chain"] },
-  { id: 3, name: "Code Assistant v3", author: "DevOpsAgent", emoji: "💻", gradient: "linear-gradient(135deg, #7C3AED, #A855F7)", description: "Full-stack development skills including testing, deployment, and code review.", status: "live", priority: "medium", rating: 4.7, downloads: 2100, verified: true, starred: false, features: ["Full-stack", "Testing", "CI/CD"] },
-  { id: 4, name: "Security Guardian", author: "SecureAI", emoji: "🛡️", gradient: "linear-gradient(135deg, #FF6B00, #FF8533)", description: "Prompt injection defense, security auditing, and vulnerability scanning.", status: "live", priority: "high", rating: 4.9, downloads: 1800, verified: true, starred: false, features: ["Injection Defense", "Auditing"] },
-  { id: 5, name: "Content Creator Kit", author: "CreativeAI", emoji: "🎨", gradient: "linear-gradient(135deg, #FFD93D, #FFC107)", description: "Social media content generation, image prompts, and video scripts.", status: "live", priority: "emerging", rating: 4.6, downloads: 920, verified: true, starred: false, features: ["Social Media", "Scripts"] },
-  { id: 6, name: "Email Composer Pro", author: "CommBot", emoji: "✉️", gradient: "linear-gradient(135deg, #3B82F6, #60A5FA)", description: "Professional email writing with tone adaptation and smart follow-ups.", status: "dev", priority: "medium", rating: 4.5, downloads: 650, verified: false, starred: false, features: ["Tone Analysis", "Templates"] },
-];
+const ITEMS_PER_PAGE = 6;
 
-const categories = [
-  { id: 'all', label: 'All', count: 142 },
-  { id: 'research', label: '🔬 Research', count: 18 },
-  { id: 'finance', label: '📈 Finance', count: 24 },
-  { id: 'coding', label: '💻 Coding', count: 35 },
-  { id: 'security', label: '🛡️ Security', count: 12 },
-  { id: 'creative', label: '🎨 Creative', count: 28 },
+const sortOptions = [
+  { value: 'trending', label: 'Sort: Trending' },
+  { value: 'newest', label: 'Sort: Newest' },
+  { value: 'downloads', label: 'Sort: Most Downloads' },
+  { value: 'rating', label: 'Sort: Highest Rated' },
 ];
 
 export default function MarketplacePage() {
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [starredSkills, setStarredSkills] = useState<number[]>([2]); // Trading Strategist is starred by default
+  return <Suspense><MarketplaceContent /></Suspense>;
+}
 
+function formatCompact(n: number): string {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
+  return n.toFixed(1);
+}
+
+function MarketplaceContent() {
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('q') || '';
+  const { data: tokenData, loading: tokenLoading } = useTokenData();
+  const tokenAvailable = tokenData?.available;
+  const pumpUrl = TOKEN_CONFIG.mintAddress
+    ? TOKEN_CONFIG.pumpFunUrl(TOKEN_CONFIG.mintAddress)
+    : undefined;
+
+  const [activeCategory, setActiveCategoryRaw] = useState('all');
+  const [sortBy, setSortByRaw] = useState('trending');
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [prevSearch, setPrevSearch] = useState(searchQuery);
+  if (prevSearch !== searchQuery) {
+    setPrevSearch(searchQuery);
+    setVisibleCount(ITEMS_PER_PAGE);
+  }
+  const setActiveCategory = (cat: string) => { setActiveCategoryRaw(cat); setVisibleCount(ITEMS_PER_PAGE); };
+  const setSortBy = (sort: string) => { setSortByRaw(sort); setVisibleCount(ITEMS_PER_PAGE); };
+  const [starredSkills, setStarredSkills] = useState<number[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('awa-starred-skills');
+        if (saved) return JSON.parse(saved);
+      }
+    } catch {}
+    return [];
+  });
+
+  // Persist starred skills to localStorage
   const toggleStar = (id: number) => {
-    setStarredSkills(prev =>
-      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-    );
+    setStarredSkills((prev) => {
+      const next = prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id];
+      try {
+        localStorage.setItem('awa-starred-skills', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   };
+
+  const filteredSkills = useMemo(
+    () => filterSkills(mockSkills, { category: activeCategory, search: searchQuery, sort: sortBy }),
+    [activeCategory, searchQuery, sortBy]
+  );
+
+  const visibleSkills = filteredSkills.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredSkills.length;
+
+  const categoryCounts = useMemo(() => getCategoryCounts(mockSkills), []);
+
+  const categories = [
+    { id: 'all', label: 'All', count: categoryCounts.all },
+    ...Object.entries(categoryMeta).map(([id, meta]) => ({
+      id,
+      label: `${meta.emoji} ${meta.label}`,
+      count: categoryCounts[id] || 0,
+    })),
+  ];
 
   return (
     <section className="marketplace-section">
@@ -49,7 +102,7 @@ export default function MarketplacePage() {
       <div className="stats-bar">
         <div className="stat">
           <div className="stat-label">Total Skills</div>
-          <div className="stat-value">142 <span className="change positive">+8</span></div>
+          <div className="stat-value">{mockSkills.length} <span className="change positive">+8</span></div>
         </div>
         <div className="stat">
           <div className="stat-label">Active Agents</div>
@@ -59,12 +112,36 @@ export default function MarketplacePage() {
           <div className="stat-label">Verified Creators</div>
           <div className="stat-value">89 <span className="change positive">+12</span></div>
         </div>
+        <div className="stat">
+          <div className="stat-label">Volume 24H</div>
+          <div className="stat-value">
+            {pumpUrl ? (
+              <a href={pumpUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                {tokenLoading || !tokenAvailable ? '--' : `$${formatCompact(tokenData.volume24h)}`}
+              </a>
+            ) : (
+              '--'
+            )}
+          </div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Floor Price</div>
+          <div className="stat-value">
+            {pumpUrl ? (
+              <a href={pumpUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                {tokenLoading || !tokenAvailable ? '--' : `$${tokenData.price < 0.01 ? tokenData.price.toPrecision(4) : tokenData.price.toFixed(4)}`}
+              </a>
+            ) : (
+              '--'
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="filters-bar">
         <div className="filter-pills">
-          {categories.map(cat => (
+          {categories.map((cat) => (
             <button
               key={cat.id}
               className={`filter-pill ${activeCategory === cat.id ? 'active' : ''}`}
@@ -74,17 +151,29 @@ export default function MarketplacePage() {
             </button>
           ))}
         </div>
-        <select className="sort-select">
-          <option>Sort: Trending</option>
-          <option>Sort: Newest</option>
-          <option>Sort: Most Downloads</option>
-          <option>Sort: Highest Rated</option>
+        <select
+          className="sort-select"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+        >
+          {sortOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
         </select>
       </div>
 
+      {/* Search indicator */}
+      {searchQuery && (
+        <div style={{ padding: '0 0 16px', color: 'var(--text-secondary)', fontSize: 14 }}>
+          Showing results for &quot;{searchQuery}&quot; — {filteredSkills.length} skill{filteredSkills.length !== 1 ? 's' : ''} found
+        </div>
+      )}
+
       {/* Skills Grid */}
       <div className="skills-grid">
-        {skills.map(skill => {
+        {visibleSkills.map((skill) => {
           const isStarred = starredSkills.includes(skill.id);
           const statusClass = skill.status === 'live' ? 'badge-live' : 'badge-dev';
           const statusText = skill.status === 'live' ? 'LIVE' : 'IN DEV';
@@ -121,7 +210,7 @@ export default function MarketplacePage() {
                 <span className={`badge ${priorityClass}`}>{skill.priority.toUpperCase()}</span>
               </div>
               <div className="skill-features">
-                {skill.features.map(f => (
+                {skill.features.slice(0, 3).map((f) => (
                   <span key={f} className="feature-tag">{f}</span>
                 ))}
               </div>
@@ -136,10 +225,26 @@ export default function MarketplacePage() {
         })}
       </div>
 
+      {/* Empty state */}
+      {filteredSkills.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+          <h3 style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>No skills found</h3>
+          <p>Try adjusting your search or filters.</p>
+        </div>
+      )}
+
       {/* Load More */}
-      <div className="load-more">
-        <button className="load-more-btn">Load More Skills ↓</button>
-      </div>
+      {hasMore && (
+        <div className="load-more">
+          <button
+            className="load-more-btn"
+            onClick={() => setVisibleCount((prev) => prev + ITEMS_PER_PAGE)}
+          >
+            Load More Skills ↓
+          </button>
+        </div>
+      )}
     </section>
   );
 }

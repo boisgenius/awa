@@ -65,8 +65,6 @@ export function Header({ showSearch = true }: HeaderProps) {
             </div>
           )}
 
-          {/* Connect Button */}
-          <Button>Connect</Button>
         </div>
       </div>
     </header>
