@@ -1,22 +1,58 @@
 'use client';
 
-import { Suspense, useMemo } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { mockSkills, filterSkills } from '@/lib/skills/mock-data';
+import { categoryGradients } from '@/lib/skills/category-meta';
 
 export default function TopRatedPage() {
   return <Suspense><TopRatedContent /></Suspense>;
+}
+
+interface SkillItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  status: string;
+  rating: number;
+  ratingCount?: number;
+  downloads: number;
+  verified: boolean;
+  features: string[];
+  iconEmoji?: string;
+  authorName?: string;
 }
 
 function TopRatedContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
 
-  const skills = useMemo(
-    () => filterSkills(mockSkills, { search: searchQuery, sort: 'rating' }),
-    [searchQuery]
-  );
+  const [skills, setSkills] = useState<SkillItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchTopRated() {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set('sort', 'rating');
+        params.set('status', 'live');
+        if (searchQuery) params.set('search', searchQuery);
+        params.set('limit', '20');
+
+        const res = await fetch(`/api/skills?${params}`);
+        const data = await res.json();
+        setSkills(data.data || []);
+      } catch (err) {
+        console.error('Failed to fetch top rated skills:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTopRated();
+  }, [searchQuery]);
 
   return (
     <section className="marketplace-section">
@@ -33,6 +69,12 @@ function TopRatedContent() {
         </div>
       )}
 
+      {loading && skills.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 24 }}>Loading...</div>
+        </div>
+      )}
+
       <div className="skills-grid">
         {skills.map((skill) => {
           const statusClass = skill.status === 'live' ? 'badge-live' : 'badge-dev';
@@ -41,8 +83,8 @@ function TopRatedContent() {
           return (
             <article key={skill.id} className="skill-card">
               <div className="skill-header">
-                <div className="skill-icon" style={{ background: skill.gradient }}>
-                  {skill.emoji}
+                <div className="skill-icon" style={{ background: categoryGradients[skill.category] || categoryGradients.coding }}>
+                  {skill.iconEmoji || '📦'}
                 </div>
                 <div className="skill-actions">
                   <span style={{ color: '#FFD93D', fontSize: 14 }}>
@@ -56,7 +98,7 @@ function TopRatedContent() {
                   {skill.verified && <span className="verified-badge">✓</span>}
                 </h3>
               </Link>
-              <span className="skill-author">by {skill.author}</span>
+              <span className="skill-author">by {skill.authorName || 'Unknown'}</span>
               <p className="skill-desc">{skill.description}</p>
               <div className="skill-badges">
                 <span className={`badge ${statusClass}`}>{statusText}</span>
@@ -68,7 +110,7 @@ function TopRatedContent() {
               </div>
               <div className="skill-footer">
                 <div className="skill-stats">
-                  <span className="skill-stat"><span className="star">★</span> {skill.rating} ({skill.ratingCount})</span>
+                  <span className="skill-stat"><span className="star">★</span> {skill.rating}{skill.ratingCount ? ` (${skill.ratingCount})` : ''}</span>
                   <span className="skill-stat">↓ {skill.downloads.toLocaleString()}</span>
                 </div>
               </div>
@@ -77,7 +119,7 @@ function TopRatedContent() {
         })}
       </div>
 
-      {skills.length === 0 && (
+      {!loading && skills.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
           <h3 style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>No skills found</h3>

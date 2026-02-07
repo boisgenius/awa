@@ -1,122 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SkillManager, type SkillManagerAdapter } from '@/lib/skills';
-import type { Skill, SkillQuery, UpdateSkillInput, PaginatedResult } from '@/lib/skills';
-import { createAuthMiddleware } from '@/lib/auth';
+import { SkillManager } from '@/lib/skills';
+import type { UpdateSkillInput } from '@/lib/skills';
+import { supabaseSkillAdapter } from '@/lib/skills/supabase-adapter';
+import { extractApiKey, errorResponse, successResponse } from '@/lib/auth/api-middleware';
+import { getAgentByApiKey } from '@/lib/agents';
 
-// Mock data store (shared with parent route in production)
-const skillsStore = new Map<string, Skill>([
-  ['1', {
-    id: '1',
-    name: 'Web Research Pro',
-    slug: 'web-research-pro',
-    authorId: 'author-1',
-    description: 'Advanced web research and information gathering capabilities with multi-source verification.',
-    category: 'research',
-    status: 'live',
-    priority: 'high',
-    price: 0.5,
-    rating: 4.8,
-    ratingCount: 156,
-    downloads: 2340,
-    verified: true,
-    features: ['Multi-source Search', 'Fact Verification', 'Data Extraction', 'Report Generation'],
-    content: 'skill content here',
-    version: '2.1.0',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }],
-  ['2', {
-    id: '2',
-    name: 'Code Review Assistant',
-    slug: 'code-review-assistant',
-    authorId: 'author-2',
-    description: 'Automated code review with best practices enforcement and security vulnerability detection.',
-    category: 'coding',
-    status: 'live',
-    priority: 'high',
-    price: 0.8,
-    rating: 4.9,
-    ratingCount: 89,
-    downloads: 1560,
-    verified: true,
-    features: ['Review', 'Security', 'Performance', 'Style'],
-    content: 'skill content here',
-    version: '1.5.0',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }],
-]);
-
-// Mock adapter implementing SkillManagerAdapter
-const mockSkillAdapter: SkillManagerAdapter = {
-  async getSkill(id: string): Promise<Skill | null> {
-    return skillsStore.get(id) || null;
-  },
-
-  async getSkillBySlug(slug: string): Promise<Skill | null> {
-    const skills = Array.from(skillsStore.values());
-    for (const skill of skills) {
-      if (skill.slug === slug) return skill;
-    }
-    return null;
-  },
-
-  async getSkills(query: SkillQuery): Promise<PaginatedResult<Skill>> {
-    return {
-      data: Array.from(skillsStore.values()),
-      total: skillsStore.size,
-      page: 1,
-      limit: 20,
-      hasMore: false,
-    };
-  },
-
-  async createSkill(skillData: Omit<Skill, 'id' | 'createdAt' | 'updatedAt' | 'rating' | 'ratingCount' | 'downloads'>): Promise<Skill> {
-    const id = crypto.randomUUID();
-    const skill: Skill = {
-      ...skillData,
-      id,
-      rating: 0,
-      ratingCount: 0,
-      downloads: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    skillsStore.set(id, skill);
-    return skill;
-  },
-
-  async updateSkill(id: string, input: UpdateSkillInput): Promise<Skill> {
-    const skill = skillsStore.get(id);
-    if (!skill) throw new Error('Skill not found');
-    const updated: Skill = { ...skill, ...input, updatedAt: new Date() };
-    skillsStore.set(id, updated);
-    return updated;
-  },
-
-  async deleteSkill(id: string): Promise<void> {
-    skillsStore.delete(id);
-  },
-};
-
-const skillManager = new SkillManager(mockSkillAdapter);
-
-// Mock auth validator
-async function mockValidateApiKey(key: string) {
-  if (key.startsWith('claw_')) {
-    return {
-      id: 'agent-1',
-      name: 'Test Agent',
-      apiKeyHash: 'hash',
-      apiKeyPrefix: 'claw_',
-      walletPublicKey: 'wallet-public-key',
-      walletEncryptedKey: 'encrypted',
-      isActive: true,
-      createdAt: new Date(),
-    };
-  }
-  return null;
-}
+const skillManager = new SkillManager(supabaseSkillAdapter);
 
 interface RouteParams {
   params: { id: string };
@@ -158,23 +47,15 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  // Wrap with auth middleware manually for dynamic routes
-  const apiKey = request.headers.get('x-api-key') ||
-    request.headers.get('authorization')?.replace('Bearer ', '');
+  const apiKey = extractApiKey(request);
 
   if (!apiKey) {
-    return NextResponse.json(
-      { error: 'API key required' },
-      { status: 401 }
-    );
+    return errorResponse('MISSING_AUTH', 'API key required', 401);
   }
 
-  const agent = await mockValidateApiKey(apiKey);
+  const agent = await getAgentByApiKey(apiKey);
   if (!agent) {
-    return NextResponse.json(
-      { error: 'Invalid API key' },
-      { status: 401 }
-    );
+    return errorResponse('INVALID_API_KEY', 'Invalid API key', 401);
   }
 
   try {
@@ -187,7 +68,6 @@ export async function PUT(
       );
     }
 
-    // Check ownership
     if (skill.authorId !== agent.id) {
       return NextResponse.json(
         { error: 'Not authorized to update this skill' },
@@ -225,22 +105,15 @@ export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  const apiKey = request.headers.get('x-api-key') ||
-    request.headers.get('authorization')?.replace('Bearer ', '');
+  const apiKey = extractApiKey(request);
 
   if (!apiKey) {
-    return NextResponse.json(
-      { error: 'API key required' },
-      { status: 401 }
-    );
+    return errorResponse('MISSING_AUTH', 'API key required', 401);
   }
 
-  const agent = await mockValidateApiKey(apiKey);
+  const agent = await getAgentByApiKey(apiKey);
   if (!agent) {
-    return NextResponse.json(
-      { error: 'Invalid API key' },
-      { status: 401 }
-    );
+    return errorResponse('INVALID_API_KEY', 'Invalid API key', 401);
   }
 
   try {
@@ -253,7 +126,6 @@ export async function DELETE(
       );
     }
 
-    // Check ownership
     if (skill.authorId !== agent.id) {
       return NextResponse.json(
         { error: 'Not authorized to delete this skill' },

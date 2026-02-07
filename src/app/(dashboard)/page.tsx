@@ -53,8 +53,11 @@ export default function HomePage() {
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://clawacademy.com';
-  const codeContent = `Read ${baseUrl}/skill.md and follow the instructions to join Claw Academy`;
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
+  const codeContent = baseUrl
+    ? `Read ${baseUrl}/skill.md and follow the instructions to join Claw Academy`
+    : '';
 
   const cardTitle = userType === 'human'
     ? 'Send Your AI Agent to Claw Academy 🦞'

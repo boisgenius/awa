@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { mockSkills, filterSkills, getCategoryCounts, categoryMeta } from '@/lib/skills/mock-data';
+import { categoryMeta, categoryGradients } from '@/lib/skills/category-meta';
 import { useTokenData } from '@/lib/token/use-token-data';
 import { TOKEN_CONFIG } from '@/lib/token/config';
 
@@ -26,6 +26,25 @@ function formatCompact(n: number): string {
   return n.toFixed(1);
 }
 
+interface SkillItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  status: string;
+  priority?: string;
+  price: number;
+  rating: number;
+  ratingCount?: number;
+  downloads: number;
+  verified: boolean;
+  features: string[];
+  version: string;
+  iconEmoji?: string;
+  authorName?: string;
+}
+
 function MarketplaceContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
@@ -37,15 +56,22 @@ function MarketplaceContent() {
 
   const [activeCategory, setActiveCategoryRaw] = useState('all');
   const [sortBy, setSortByRaw] = useState('trending');
-  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [page, setPage] = useState(1);
+  const [skills, setSkills] = useState<SkillItem[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({ all: 0 });
+  const [loading, setLoading] = useState(true);
   const [prevSearch, setPrevSearch] = useState(searchQuery);
+
   if (prevSearch !== searchQuery) {
     setPrevSearch(searchQuery);
-    setVisibleCount(ITEMS_PER_PAGE);
+    setPage(1);
   }
-  const setActiveCategory = (cat: string) => { setActiveCategoryRaw(cat); setVisibleCount(ITEMS_PER_PAGE); };
-  const setSortBy = (sort: string) => { setSortByRaw(sort); setVisibleCount(ITEMS_PER_PAGE); };
-  const [starredSkills, setStarredSkills] = useState<number[]>(() => {
+
+  const setActiveCategory = (cat: string) => { setActiveCategoryRaw(cat); setPage(1); };
+  const setSortBy = (sort: string) => { setSortByRaw(sort); setPage(1); };
+
+  const [starredSkills, setStarredSkills] = useState<string[]>(() => {
     try {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('awa-starred-skills');
@@ -55,8 +81,7 @@ function MarketplaceContent() {
     return [];
   });
 
-  // Persist starred skills to localStorage
-  const toggleStar = (id: number) => {
+  const toggleStar = (id: string) => {
     setStarredSkills((prev) => {
       const next = prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id];
       try {
@@ -66,18 +91,50 @@ function MarketplaceContent() {
     });
   };
 
-  const filteredSkills = useMemo(
-    () => filterSkills(mockSkills, { category: activeCategory, search: searchQuery, sort: sortBy }),
-    [activeCategory, searchQuery, sortBy]
-  );
+  const fetchSkills = useCallback(async (pageNum: number, append: boolean) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (activeCategory !== 'all') params.set('category', activeCategory);
+      if (searchQuery) params.set('search', searchQuery);
+      params.set('sort', sortBy);
+      params.set('page', String(pageNum));
+      params.set('limit', String(ITEMS_PER_PAGE));
 
-  const visibleSkills = filteredSkills.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredSkills.length;
+      const res = await fetch(`/api/skills?${params}`);
+      const data = await res.json();
 
-  const categoryCounts = useMemo(() => getCategoryCounts(mockSkills), []);
+      if (append) {
+        setSkills(prev => [...prev, ...(data.data || [])]);
+      } else {
+        setSkills(data.data || []);
+      }
+      setTotalCount(data.total || 0);
+      if (data.categoryCounts) {
+        setCategoryCounts(data.categoryCounts);
+      }
+    } catch (err) {
+      console.error('Failed to fetch skills:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeCategory, searchQuery, sortBy]);
+
+  useEffect(() => {
+    setPage(1);
+    fetchSkills(1, false);
+  }, [fetchSkills]);
+
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchSkills(nextPage, true);
+  };
+
+  const hasMore = skills.length < totalCount;
 
   const categories = [
-    { id: 'all', label: 'All', count: categoryCounts.all },
+    { id: 'all', label: 'All', count: categoryCounts.all || 0 },
     ...Object.entries(categoryMeta).map(([id, meta]) => ({
       id,
       label: `${meta.emoji} ${meta.label}`,
@@ -102,15 +159,7 @@ function MarketplaceContent() {
       <div className="stats-bar">
         <div className="stat">
           <div className="stat-label">Total Skills</div>
-          <div className="stat-value">{mockSkills.length} <span className="change positive">+8</span></div>
-        </div>
-        <div className="stat">
-          <div className="stat-label">Active Agents</div>
-          <div className="stat-value">12,847 <span className="change positive">+24.2%</span></div>
-        </div>
-        <div className="stat">
-          <div className="stat-label">Verified Creators</div>
-          <div className="stat-value">89 <span className="change positive">+12</span></div>
+          <div className="stat-value">{totalCount}</div>
         </div>
         <div className="stat">
           <div className="stat-label">Volume 24H</div>
@@ -167,13 +216,20 @@ function MarketplaceContent() {
       {/* Search indicator */}
       {searchQuery && (
         <div style={{ padding: '0 0 16px', color: 'var(--text-secondary)', fontSize: 14 }}>
-          Showing results for &quot;{searchQuery}&quot; — {filteredSkills.length} skill{filteredSkills.length !== 1 ? 's' : ''} found
+          Showing results for &quot;{searchQuery}&quot; — {totalCount} skill{totalCount !== 1 ? 's' : ''} found
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && skills.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 24 }}>Loading skills...</div>
         </div>
       )}
 
       {/* Skills Grid */}
       <div className="skills-grid">
-        {visibleSkills.map((skill) => {
+        {skills.map((skill) => {
           const isStarred = starredSkills.includes(skill.id);
           const statusClass = skill.status === 'live' ? 'badge-live' : 'badge-dev';
           const statusText = skill.status === 'live' ? 'LIVE' : 'IN DEV';
@@ -184,8 +240,8 @@ function MarketplaceContent() {
           return (
             <article key={skill.id} className="skill-card">
               <div className="skill-header">
-                <div className="skill-icon" style={{ background: skill.gradient }}>
-                  {skill.emoji}
+                <div className="skill-icon" style={{ background: categoryGradients[skill.category] || categoryGradients.coding }}>
+                  {skill.iconEmoji || '📦'}
                 </div>
                 <div className="skill-actions">
                   <button
@@ -203,11 +259,13 @@ function MarketplaceContent() {
                   {skill.verified && <span className="verified-badge">✓</span>}
                 </h3>
               </Link>
-              <span className="skill-author">by {skill.author}</span>
+              <span className="skill-author">by {skill.authorName || 'Unknown'}</span>
               <p className="skill-desc">{skill.description}</p>
               <div className="skill-badges">
                 <span className={`badge ${statusClass}`}>{statusText}</span>
-                <span className={`badge ${priorityClass}`}>{skill.priority.toUpperCase()}</span>
+                {skill.priority && (
+                  <span className={`badge ${priorityClass}`}>{skill.priority.toUpperCase()}</span>
+                )}
               </div>
               <div className="skill-features">
                 {skill.features.slice(0, 3).map((f) => (
@@ -226,7 +284,7 @@ function MarketplaceContent() {
       </div>
 
       {/* Empty state */}
-      {filteredSkills.length === 0 && (
+      {!loading && skills.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
           <h3 style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>No skills found</h3>
@@ -239,9 +297,10 @@ function MarketplaceContent() {
         <div className="load-more">
           <button
             className="load-more-btn"
-            onClick={() => setVisibleCount((prev) => prev + ITEMS_PER_PAGE)}
+            onClick={loadMore}
+            disabled={loading}
           >
-            Load More Skills ↓
+            {loading ? 'Loading...' : 'Load More Skills ↓'}
           </button>
         </div>
       )}

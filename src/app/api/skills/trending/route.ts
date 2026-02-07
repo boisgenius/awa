@@ -1,52 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Mock trending skills data
-const mockTrendingSkills = [
-  {
-    id: '1',
-    name: 'Web Research Pro',
-    slug: 'web-research-pro',
-    category: 'research',
-    rating: 4.8,
-    downloads: 2340,
-    price: 0.5,
-    trendScore: 85,
-    change24h: 12.5,
-  },
-  {
-    id: '4',
-    name: 'Security Scanner',
-    slug: 'security-scanner',
-    category: 'security',
-    rating: 4.3,
-    downloads: 340,
-    price: 0.6,
-    trendScore: 78,
-    change24h: 45.2,
-  },
-  {
-    id: '2',
-    name: 'Code Review Assistant',
-    slug: 'code-review-assistant',
-    category: 'coding',
-    rating: 4.9,
-    downloads: 1560,
-    price: 0.8,
-    trendScore: 72,
-    change24h: 8.3,
-  },
-  {
-    id: '5',
-    name: 'Creative Writer',
-    slug: 'creative-writer',
-    category: 'creative',
-    rating: 4.7,
-    downloads: 1890,
-    price: 0.4,
-    trendScore: 68,
-    change24h: 5.7,
-  },
-];
+import { createServiceClient } from '@/lib/supabase/server';
 
 /**
  * GET /api/skills/trending
@@ -58,18 +11,45 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get('category');
 
   try {
-    let skills = [...mockTrendingSkills];
+    const supabase = createServiceClient();
 
-    // Filter by category if provided
+    let query = supabase
+      .from('skills')
+      .select('*, authors(author_name)')
+      .eq('status', 'live')
+      .order('downloads', { ascending: false })
+      .limit(limit);
+
     if (category && category !== 'all') {
-      skills = skills.filter(s => s.category === category);
+      query = query.eq('category', category);
     }
 
-    // Sort by trend score
-    skills.sort((a, b) => b.trendScore - a.trendScore);
+    const { data, error } = await query;
 
-    // Limit results
-    skills = skills.slice(0, limit);
+    if (error) {
+      console.error('Error fetching trending skills:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch trending skills' },
+        { status: 500 }
+      );
+    }
+
+    const skills = (data || []).map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      category: row.category,
+      rating: row.rating,
+      downloads: row.downloads,
+      price: row.price,
+      iconEmoji: row.icon_emoji || undefined,
+      authorName: row.authors?.author_name || undefined,
+      verified: row.is_verified,
+      description: row.description || '',
+      features: row.features || [],
+      status: row.status,
+      currency: row.currency,
+    }));
 
     return NextResponse.json({
       data: skills,

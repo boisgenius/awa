@@ -1,18 +1,34 @@
 'use client';
 
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { mockSkills, filterSkills } from '@/lib/skills/mock-data';
+import { categoryGradients } from '@/lib/skills/category-meta';
 
 export default function SavedPage() {
   return <Suspense><SavedContent /></Suspense>;
 }
 
+interface SkillItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  status: string;
+  rating: number;
+  downloads: number;
+  verified: boolean;
+  features: string[];
+  iconEmoji?: string;
+  authorName?: string;
+}
+
 function SavedContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
-  const [starredIds, setStarredIds] = useState<number[]>(() => {
+
+  const [starredIds, setStarredIds] = useState<string[]>(() => {
     try {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('awa-starred-skills');
@@ -22,7 +38,10 @@ function SavedContent() {
     return [];
   });
 
-  const removeStar = (id: number) => {
+  const [skills, setSkills] = useState<SkillItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const removeStar = (id: string) => {
     setStarredIds((prev) => {
       const next = prev.filter((s) => s !== id);
       try {
@@ -30,14 +49,40 @@ function SavedContent() {
       } catch {}
       return next;
     });
+    setSkills((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const savedSkills = useMemo(() => {
-    const starred = mockSkills.filter((s) => starredIds.includes(s.id));
-    if (searchQuery) {
-      return filterSkills(starred, { search: searchQuery });
+  useEffect(() => {
+    async function fetchSaved() {
+      if (starredIds.length === 0) {
+        setSkills([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/skills?ids=${starredIds.join(',')}`);
+        const data = await res.json();
+        let results: SkillItem[] = data.data || [];
+
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          results = results.filter(
+            (s) =>
+              s.name.toLowerCase().includes(q) ||
+              s.description.toLowerCase().includes(q)
+          );
+        }
+
+        setSkills(results);
+      } catch (err) {
+        console.error('Failed to fetch saved skills:', err);
+      } finally {
+        setLoading(false);
+      }
     }
-    return starred;
+    fetchSaved();
   }, [starredIds, searchQuery]);
 
   return (
@@ -55,17 +100,23 @@ function SavedContent() {
         </div>
       )}
 
-      {savedSkills.length > 0 ? (
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 24 }}>Loading...</div>
+        </div>
+      )}
+
+      {!loading && skills.length > 0 ? (
         <div className="skills-grid">
-          {savedSkills.map((skill) => {
+          {skills.map((skill) => {
             const statusClass = skill.status === 'live' ? 'badge-live' : 'badge-dev';
             const statusText = skill.status === 'live' ? 'LIVE' : 'IN DEV';
 
             return (
               <article key={skill.id} className="skill-card">
                 <div className="skill-header">
-                  <div className="skill-icon" style={{ background: skill.gradient }}>
-                    {skill.emoji}
+                  <div className="skill-icon" style={{ background: categoryGradients[skill.category] || categoryGradients.coding }}>
+                    {skill.iconEmoji || '📦'}
                   </div>
                   <div className="skill-actions">
                     <button
@@ -83,7 +134,7 @@ function SavedContent() {
                     {skill.verified && <span className="verified-badge">✓</span>}
                   </h3>
                 </Link>
-                <span className="skill-author">by {skill.author}</span>
+                <span className="skill-author">by {skill.authorName || 'Unknown'}</span>
                 <p className="skill-desc">{skill.description}</p>
                 <div className="skill-badges">
                   <span className={`badge ${statusClass}`}>{statusText}</span>
@@ -103,7 +154,7 @@ function SavedContent() {
             );
           })}
         </div>
-      ) : (
+      ) : !loading ? (
         <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>💾</div>
           <h3 style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>No saved skills yet</h3>
@@ -114,7 +165,7 @@ function SavedContent() {
             Browse Skills
           </Link>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }

@@ -1,11 +1,11 @@
 'use client';
 
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { mockSkills, getLeaderboardData } from '@/lib/skills/mock-data';
+import { categoryGradients } from '@/lib/skills/category-meta';
 
-const timeRanges = ['24H', '7D', '30D', 'All'];
+const timeRanges = ['24h', '7d', '30d', 'all'];
 
 type SortColumn = 'name' | 'change' | 'downloads';
 type SortDir = 'asc' | 'desc';
@@ -14,18 +14,33 @@ export default function LeaderboardPage() {
   return <Suspense><LeaderboardContent /></Suspense>;
 }
 
+interface LeaderboardItem {
+  rank: number;
+  skillId: string;
+  name: string;
+  author: string;
+  category: string;
+  downloads: number;
+  volume: number;
+  rating: number;
+  change: number;
+  iconEmoji?: string;
+  verified: boolean;
+}
+
 function LeaderboardContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
 
-  const [activeTime, setActiveTime] = useState('24H');
-  const [sortCol, setSortCol] = useState<SortColumn>('change');
+  const [activeTime, setActiveTime] = useState('24h');
+  const [sortCol, setSortCol] = useState<SortColumn>('downloads');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [items, setItems] = useState<LeaderboardItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const handleTimeChange = (range: string) => {
     setActiveTime(range);
-    // Reset to default sort when switching time range
-    setSortCol('change');
+    setSortCol('downloads');
     setSortDir('desc');
   };
 
@@ -38,19 +53,30 @@ function LeaderboardContent() {
     }
   };
 
-  const getChangeValue = (item: { change24h: number; change7d: number; change30d: number }) => {
-    switch (activeTime) {
-      case '7D': return item.change7d;
-      case '30D': return item.change30d;
-      default: return item.change24h;
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set('timeRange', activeTime);
+        params.set('sortBy', 'trending');
+        params.set('limit', '20');
+
+        const res = await fetch(`/api/leaderboard?${params}`);
+        const data = await res.json();
+        setItems(data.data || []);
+      } catch (err) {
+        console.error('Failed to fetch leaderboard:', err);
+      } finally {
+        setLoading(false);
+      }
     }
-  };
+    fetchLeaderboard();
+  }, [activeTime]);
 
   const leaderboardData = useMemo(() => {
-    const changeKey = activeTime === '7D' ? 'change7d' : activeTime === '30D' ? 'change30d' : 'change24h';
-    let data = getLeaderboardData(mockSkills, activeTime);
+    let data = [...items];
 
-    // Apply search filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       data = data.filter(
@@ -60,7 +86,6 @@ function LeaderboardContent() {
       );
     }
 
-    // Apply column sorting
     data.sort((a, b) => {
       let cmp = 0;
       switch (sortCol) {
@@ -68,7 +93,7 @@ function LeaderboardContent() {
           cmp = a.name.localeCompare(b.name);
           break;
         case 'change':
-          cmp = a[changeKey] - b[changeKey];
+          cmp = a.change - b.change;
           break;
         case 'downloads':
           cmp = a.downloads - b.downloads;
@@ -77,22 +102,15 @@ function LeaderboardContent() {
       return sortDir === 'desc' ? -cmp : cmp;
     });
 
-    // Re-assign ranks after sorting
     return data.map((item, i) => ({ ...item, rank: i + 1 }));
-  }, [activeTime, searchQuery, sortCol, sortDir]);
+  }, [items, searchQuery, sortCol, sortDir]);
 
   const sortIndicator = (col: SortColumn) => {
     if (sortCol !== col) return ' ⇅';
     return sortDir === 'desc' ? ' ↓' : ' ↑';
   };
 
-  const formatChange = (value: number) => {
-    const sign = value >= 0 ? '+' : '';
-    return `${sign}${value.toFixed(1)}%`;
-  };
-
-  // Column header for the change column
-  const changeLabel = activeTime === 'All' ? 'CHANGE' : activeTime;
+  const changeLabel = activeTime === 'all' ? 'CHANGE' : activeTime.toUpperCase();
 
   return (
     <section className="leaderboard-section">
@@ -105,7 +123,7 @@ function LeaderboardContent() {
               className={`time-pill ${activeTime === range ? 'active' : ''}`}
               onClick={() => handleTimeChange(range)}
             >
-              {range}
+              {range.toUpperCase()}
             </button>
           ))}
         </div>
@@ -114,6 +132,12 @@ function LeaderboardContent() {
       {searchQuery && (
         <div style={{ padding: '0 0 16px', color: 'var(--text-secondary)', fontSize: 14 }}>
           Showing results for &quot;{searchQuery}&quot;
+        </div>
+      )}
+
+      {loading && items.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 24 }}>Loading...</div>
         </div>
       )}
 
@@ -135,39 +159,36 @@ function LeaderboardContent() {
             </tr>
           </thead>
           <tbody>
-            {leaderboardData.map((item) => {
-              const changeVal = getChangeValue(item);
-              return (
-                <tr key={item.id}>
-                  <td className="td-rank">{item.rank}</td>
-                  <td>
-                    <Link href={`/skills/${item.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                      <div className="skill-cell">
-                        <div className="mini-icon" style={{ background: item.gradient }}>
-                          {item.emoji}
-                        </div>
-                        <span className="skill-cell-name">
-                          {item.name}
-                          {item.verified && (
-                            <span className="verified-badge" style={{ width: 14, height: 14, fontSize: 8 }}>✓</span>
-                          )}
-                        </span>
+            {leaderboardData.map((item) => (
+              <tr key={item.skillId}>
+                <td className="td-rank">{item.rank}</td>
+                <td>
+                  <Link href={`/skills/${item.skillId}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <div className="skill-cell">
+                      <div className="mini-icon" style={{ background: categoryGradients[item.category] || categoryGradients.coding }}>
+                        {item.iconEmoji || '📦'}
                       </div>
-                    </Link>
-                  </td>
-                  <td className="td-category">{item.category}</td>
-                  <td className={`td-change ${changeVal >= 0 ? 'positive' : 'negative'}`}>
-                    {formatChange(changeVal)}
-                  </td>
-                  <td><span className="mono">{item.downloads.toLocaleString()}</span></td>
-                </tr>
-              );
-            })}
+                      <span className="skill-cell-name">
+                        {item.name}
+                        {item.verified && (
+                          <span className="verified-badge" style={{ width: 14, height: 14, fontSize: 8 }}>✓</span>
+                        )}
+                      </span>
+                    </div>
+                  </Link>
+                </td>
+                <td className="td-category">{item.category}</td>
+                <td className={`td-change ${item.change >= 0 ? 'positive' : 'negative'}`}>
+                  {item.change >= 0 ? '+' : ''}{item.change}%
+                </td>
+                <td><span className="mono">{item.downloads.toLocaleString()}</span></td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
-      {leaderboardData.length === 0 && (
+      {!loading && leaderboardData.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
           <h3 style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>No results found</h3>

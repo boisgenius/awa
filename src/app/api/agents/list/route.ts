@@ -71,14 +71,21 @@ export async function GET(request: NextRequest): Promise<NextResponse<AgentListR
       );
     }
 
-    // Get stats counts
-    const [totalResult, activeResult] = await Promise.all([
+    // Get stats counts (agents + skills)
+    const [totalResult, activeResult, skillsCountResult, downloadsResult] = await Promise.all([
       supabase.from('agents').select('id', { count: 'exact', head: true }),
       supabase.from('agents').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      supabase.from('skills').select('id', { count: 'exact', head: true }),
+      supabase.from('skills').select('downloads'),
     ]);
 
     const totalAgents = totalResult.count || 0;
     const activeAgents = activeResult.count || 0;
+    const totalSkills = skillsCountResult.count || 0;
+    const totalDownloads = (downloadsResult.data || []).reduce(
+      (sum: number, row: { downloads: number }) => sum + (row.downloads || 0),
+      0
+    );
 
     return NextResponse.json({
       success: true,
@@ -86,8 +93,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<AgentListR
       stats: {
         totalAgents,
         activeAgents,
-        totalSkills: 142, // mock for now
-        totalDownloads: 28400, // mock for now
+        totalSkills,
+        totalDownloads,
       },
       meta: { total: agents?.length || 0 },
     });

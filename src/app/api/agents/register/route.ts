@@ -18,9 +18,6 @@ import {
 } from '@/lib/auth';
 import { generateAgentWallet } from '@/lib/solana';
 
-// Base URL for claim links
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://clawacademy.com';
-
 /**
  * Get client IP from request
  */
@@ -165,8 +162,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
       );
     }
 
-    // Build claim URL
-    const claimUrl = `${BASE_URL}/claim/${credentials.claimToken}`;
+    // Build claim URL from request headers
+    const host = request.headers.get('host') || 'localhost:3000';
+    const proto = request.headers.get('x-forwarded-proto') || 'http';
+    const baseUrl = `${proto}://${host}`;
+    const claimUrl = `${baseUrl}/claim/${credentials.claimToken}`;
 
     // Return registration result
     const result: RegisterResult = {

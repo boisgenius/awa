@@ -1,22 +1,57 @@
 'use client';
 
-import { Suspense, useMemo } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { mockSkills, filterSkills } from '@/lib/skills/mock-data';
+import { categoryGradients } from '@/lib/skills/category-meta';
 
 export default function TrendingPage() {
   return <Suspense><TrendingContent /></Suspense>;
+}
+
+interface SkillItem {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  status: string;
+  rating: number;
+  downloads: number;
+  verified: boolean;
+  features: string[];
+  iconEmoji?: string;
+  authorName?: string;
 }
 
 function TrendingContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q') || '';
 
-  const skills = useMemo(
-    () => filterSkills(mockSkills, { search: searchQuery, sort: 'trending' }),
-    [searchQuery]
-  );
+  const [skills, setSkills] = useState<SkillItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchTrending() {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set('sort', 'trending');
+        params.set('status', 'live');
+        if (searchQuery) params.set('search', searchQuery);
+        params.set('limit', '20');
+
+        const res = await fetch(`/api/skills?${params}`);
+        const data = await res.json();
+        setSkills(data.data || []);
+      } catch (err) {
+        console.error('Failed to fetch trending skills:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTrending();
+  }, [searchQuery]);
 
   return (
     <section className="marketplace-section">
@@ -33,6 +68,12 @@ function TrendingContent() {
         </div>
       )}
 
+      {loading && skills.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 24 }}>Loading...</div>
+        </div>
+      )}
+
       <div className="skills-grid">
         {skills.map((skill) => {
           const statusClass = skill.status === 'live' ? 'badge-live' : 'badge-dev';
@@ -41,13 +82,8 @@ function TrendingContent() {
           return (
             <article key={skill.id} className="skill-card">
               <div className="skill-header">
-                <div className="skill-icon" style={{ background: skill.gradient }}>
-                  {skill.emoji}
-                </div>
-                <div className="skill-actions">
-                  <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                    Score: {skill.trendingScore}
-                  </span>
+                <div className="skill-icon" style={{ background: categoryGradients[skill.category] || categoryGradients.coding }}>
+                  {skill.iconEmoji || '📦'}
                 </div>
               </div>
               <Link href={`/skills/${skill.id}`}>
@@ -56,13 +92,10 @@ function TrendingContent() {
                   {skill.verified && <span className="verified-badge">✓</span>}
                 </h3>
               </Link>
-              <span className="skill-author">by {skill.author}</span>
+              <span className="skill-author">by {skill.authorName || 'Unknown'}</span>
               <p className="skill-desc">{skill.description}</p>
               <div className="skill-badges">
                 <span className={`badge ${statusClass}`}>{statusText}</span>
-                <span className="badge" style={{ background: skill.change24h >= 0 ? 'rgba(0,255,136,0.15)' : 'rgba(255,68,68,0.15)', color: skill.change24h >= 0 ? '#00FF88' : '#FF4444' }}>
-                  {skill.change24h >= 0 ? '+' : ''}{skill.change24h}% 24H
-                </span>
               </div>
               <div className="skill-features">
                 {skill.features.slice(0, 3).map((f) => (
@@ -80,7 +113,7 @@ function TrendingContent() {
         })}
       </div>
 
-      {skills.length === 0 && (
+      {!loading && skills.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
           <h3 style={{ color: 'var(--text-secondary)', marginBottom: 8 }}>No skills found</h3>

@@ -8,10 +8,10 @@ export interface Skill {
   description: string;
   category: SkillCategory;
   status: SkillStatus;
-  priority: SkillPriority;
+  priority?: SkillPriority;
   price: number;
   rating: number;
-  ratingCount: number;
+  ratingCount?: number;
   downloads: number;
   verified: boolean;
   features: string[];
@@ -19,6 +19,9 @@ export interface Skill {
   version: string;
   createdAt: Date;
   updatedAt: Date;
+  iconEmoji?: string;
+  currency?: string;
+  authorName?: string;
 }
 
 export type SkillCategory =

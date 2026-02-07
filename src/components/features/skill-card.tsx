@@ -76,9 +76,11 @@ export function SkillCard({ skill }: SkillCardProps) {
           <Badge variant={skill.status === 'live' ? 'live' : 'dev'}>
             {skill.status === 'live' ? 'LIVE' : 'IN DEV'}
           </Badge>
-          <Badge variant={skill.priority as 'high' | 'medium' | 'emerging'}>
-            {skill.priority.toUpperCase()}
-          </Badge>
+          {skill.priority && (
+            <Badge variant={skill.priority as 'high' | 'medium' | 'emerging'}>
+              {skill.priority.toUpperCase()}
+            </Badge>
+          )}
         </div>
 
         {/* Features */}

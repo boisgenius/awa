@@ -77,7 +77,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               </Link>
               <Link href="/marketplace" className={`nav-item ${pathname === '/marketplace' ? 'active' : ''}`}>
                 <span className="nav-item-icon">📦</span> All Skills
-                <span className="nav-item-count">142</span>
               </Link>
               <Link href="/trending" className={`nav-item ${pathname === '/trending' ? 'active' : ''}`}>
                 <span className="nav-item-icon">🔥</span> Trending
