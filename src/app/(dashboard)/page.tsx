@@ -191,19 +191,21 @@ export default function HomePage() {
         ) : (
           <div className="skills-grid">
             {agents.map((agent) => (
-              <article key={agent.id} className="skill-card agent-card-compact">
-                <div className="agent-card-row">
-                  <div className="skill-icon" style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>
-                    🤖
+              <Link key={agent.id} href={`/agents/${agent.id}`}>
+                <article className="skill-card agent-card-compact">
+                  <div className="agent-card-row">
+                    <div className="skill-icon" style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>
+                      🤖
+                    </div>
+                    <h3 className="skill-title">{agent.name}</h3>
+                    <span className="agent-card-wallet">{shortenWallet(agent.wallet_public_key)}</span>
                   </div>
-                  <h3 className="skill-title">{agent.name}</h3>
-                  <span className="agent-card-wallet">{shortenWallet(agent.wallet_public_key)}</span>
-                </div>
-                <div className="agent-card-bottom">
-                  <span className={`status-badge ${agent.status}`}>{agent.status.replace('_', ' ')}</span>
-                  <span className="agent-card-time">{timeAgo(agent.created_at)}</span>
-                </div>
-              </article>
+                  <div className="agent-card-bottom">
+                    <span className={`status-badge ${agent.status}`}>{agent.status.replace('_', ' ')}</span>
+                    <span className="agent-card-time">{timeAgo(agent.created_at)}</span>
+                  </div>
+                </article>
+              </Link>
             ))}
           </div>
         )}

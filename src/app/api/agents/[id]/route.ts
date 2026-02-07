@@ -1,29 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Agent } from '@/lib/auth';
-
-// Mock agents data
-const mockAgents: Record<string, Agent> = {
-  'agent-1': {
-    id: 'agent-1',
-    name: 'Test Agent',
-    apiKeyHash: 'hash',
-    apiKeyPrefix: 'claw_sk_',
-    walletPublicKey: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
-    walletEncryptedKey: 'encrypted',
-    status: 'active',
-    createdAt: new Date('2024-01-01'),
-  },
-  'agent-2': {
-    id: 'agent-2',
-    name: 'Production Agent',
-    apiKeyHash: 'hash2',
-    apiKeyPrefix: 'claw_sk_',
-    walletPublicKey: 'Hx5KtG2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsX',
-    walletEncryptedKey: 'encrypted',
-    status: 'active',
-    createdAt: new Date('2024-01-15'),
-  },
-};
+import { getAgentWithOwner, getAgentPurchaseCount } from '@/lib/agents/service';
 
 interface RouteParams {
   params: { id: string };
@@ -38,7 +14,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const agent = mockAgents[params.id];
+    const agent = await getAgentWithOwner(params.id);
 
     if (!agent) {
       return NextResponse.json(
@@ -47,13 +23,19 @@ export async function GET(
       );
     }
 
-    // Return public info only (exclude sensitive data)
+    const purchaseCount = await getAgentPurchaseCount(params.id);
+
     return NextResponse.json({
       id: agent.id,
       name: agent.name,
-      walletPublicKey: agent.walletPublicKey,
+      description: agent.description,
       status: agent.status,
+      walletPublicKey: agent.walletPublicKey,
+      owner: agent.owner,
       createdAt: agent.createdAt,
+      claimedAt: agent.claimedAt,
+      lastActiveAt: agent.lastActiveAt,
+      purchaseCount,
     });
   } catch (error) {
     console.error('Error fetching agent:', error);
