@@ -77,6 +77,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               <Link href="/" className={`nav-item ${pathname === '/' ? 'active' : ''}`}>
                 <span className="nav-item-icon">🏠</span> Home
               </Link>
+              <Link href="/agents" className={`nav-item ${pathname === '/agents' ? 'active' : ''}`}>
+                <span className="nav-item-icon">🤖</span> AI Agents
+              </Link>
               <Link href="/marketplace" className={`nav-item ${pathname === '/marketplace' ? 'active' : ''}`}>
                 <span className="nav-item-icon">📦</span> All Skills
                 <span className="nav-item-count">142</span>
@@ -173,6 +176,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               </Link>
               <Link href="/marketplace" className={`nav-tab ${pathname === '/marketplace' ? 'active' : ''}`}>
                 Marketplace
+              </Link>
+              <Link href="/agents" className={`nav-tab ${pathname === '/agents' ? 'active' : ''}`}>
+                Agents
               </Link>
               <Link href="/leaderboard" className={`nav-tab ${pathname === '/leaderboard' ? 'active' : ''}`}>
                 Leaderboard
