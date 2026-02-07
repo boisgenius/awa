@@ -814,17 +814,54 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: rgba(228, 15, 58, 0.1);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.copy-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+
+.copy-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--crimson);
+  color: var(--crimson);
+}
+
+.expiry-countdown {
+  color: var(--text-secondary) !important;
+  font-size: 14px;
+}
+
+.expiry-countdown.expired {
+  color: var(--accent-danger) !important;
+  font-weight: 700;
 }
 
 .claim-steps {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: 0;
 }
 
 .claim-steps .step {
   display: flex;
   gap: var(--space-4);
+  position: relative;
+  padding-bottom: var(--space-6);
+}
+
+.claim-steps .step:last-child {
+  padding-bottom: 0;
 }
 
 .claim-steps .step-num {
@@ -838,6 +875,35 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   justify-content: center;
   font-weight: 700;
   flex-shrink: 0;
+  font-size: 14px;
+  z-index: 1;
+  transition: background 0.3s ease;
+}
+
+.claim-steps .step.completed .step-num {
+  background: var(--accent-secondary);
+}
+
+.claim-steps .step.upcoming .step-num {
+  background: var(--text-muted);
+  opacity: 0.5;
+}
+
+.step-connector {
+  position: absolute;
+  left: 15px;
+  top: 32px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-color);
+}
+
+.step.completed .step-connector {
+  background: var(--accent-secondary);
+}
+
+.step:last-child .step-connector {
+  display: none;
 }
 
 .claim-steps .step-content {
@@ -856,7 +922,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 .btn-twitter {
-  background: #1DA1F2;
+  background: #000;
   color: white;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
@@ -871,7 +937,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 .btn-twitter:hover {
-  background: #1a8cd8;
+  background: #333;
+}
+
+.btn-twitter svg {
+  flex-shrink: 0;
 }
 
 .tweet-input {
@@ -953,8 +1023,69 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   margin-bottom: var(--space-6) !important;
 }
 
-.claim-success .btn-primary {
+.success-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.claim-success .btn-primary,
+.claim-success .btn-secondary {
   width: auto;
   display: inline-block;
   text-decoration: none;
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-muted);
+}
+
+/* Confetti animation */
+.confetti {
+  position: relative;
+  height: 60px;
+  margin-bottom: var(--space-2);
+  overflow: visible;
+}
+
+.confetti span {
+  position: absolute;
+  font-size: 24px;
+  animation: confetti-fall 1.5s ease-out forwards;
+  opacity: 0;
+}
+
+.confetti span:nth-child(1) { left: 10%; animation-delay: 0s; }
+.confetti span:nth-child(2) { left: 30%; animation-delay: 0.15s; }
+.confetti span:nth-child(3) { left: 50%; animation-delay: 0.3s; }
+.confetti span:nth-child(4) { left: 70%; animation-delay: 0.1s; }
+.confetti span:nth-child(5) { left: 85%; animation-delay: 0.25s; }
+.confetti span:nth-child(6) { left: 45%; animation-delay: 0.4s; }
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-40px) rotate(0deg) scale(0);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0) rotate(120deg) scale(1.2);
+  }
+  100% {
+    opacity: 0.6;
+    transform: translateY(20px) rotate(360deg) scale(1);
+  }
 }
