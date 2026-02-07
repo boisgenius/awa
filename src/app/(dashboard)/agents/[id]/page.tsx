@@ -36,6 +36,11 @@ function shortenWallet(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
+function isOnline(lastActiveAt: string | null): boolean {
+  if (!lastActiveAt) return false;
+  return Date.now() - new Date(lastActiveAt).getTime() < 5 * 60 * 1000;
+}
+
 export default function AgentDetailPage() {
   return <Suspense><AgentDetailContent /></Suspense>;
 }
@@ -92,8 +97,9 @@ function AgentDetailContent() {
       {/* Header */}
       <div className="agent-detail-header">
         <div className="agent-detail-header-left">
-          <div className="skill-icon" style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', width: 48, height: 48, fontSize: 24 }}>
+          <div className="skill-icon" style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', width: 48, height: 48, fontSize: 24, position: 'relative' }}>
             🤖
+            <span className={isOnline(agent.lastActiveAt) ? 'online-dot' : 'offline-dot'} />
           </div>
           <div>
             <div className="agent-detail-title-row">

@@ -12,6 +12,7 @@ interface Agent {
   status: string;
   wallet_public_key: string | null;
   created_at: string;
+  last_active_at: string | null;
 }
 
 interface AgentStats {
@@ -37,6 +38,11 @@ function timeAgo(dateStr: string): string {
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}d ago`;
   return `${Math.floor(days / 30)}mo ago`;
+}
+
+function isOnline(lastActiveAt: string | null): boolean {
+  if (!lastActiveAt) return false;
+  return Date.now() - new Date(lastActiveAt).getTime() < 5 * 60 * 1000;
 }
 
 export default function HomePage() {
@@ -194,8 +200,9 @@ export default function HomePage() {
               <Link key={agent.id} href={`/agents/${agent.id}`}>
                 <article className="skill-card agent-card-compact">
                   <div className="agent-card-row">
-                    <div className="skill-icon" style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}>
+                    <div className="skill-icon" style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)', position: 'relative' }}>
                       🤖
+                      <span className={isOnline(agent.last_active_at) ? 'online-dot' : 'offline-dot'} />
                     </div>
                     <h3 className="skill-title">{agent.name}</h3>
                     <span className="agent-card-wallet">{shortenWallet(agent.wallet_public_key)}</span>

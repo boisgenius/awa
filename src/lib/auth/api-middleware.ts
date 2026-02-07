@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAgentByApiKey } from '@/lib/agents';
+import { getAgentByApiKey, updateAgentLastActive } from '@/lib/agents';
 import { isValidApiKeyFormat } from './credentials';
 import { getRateLimiter, createRateLimitHeaders, RATE_LIMITS } from './rate-limiter';
 import { ErrorCodes, type ApiResponse, type Agent } from './types';
@@ -161,6 +161,9 @@ export function withAuth<T = unknown>(
           createRateLimitHeaders(rateLimitResult)
         );
       }
+
+      // Update last active time (fire and forget)
+      updateAgentLastActive(agent.id).catch(console.error);
 
       // Call handler
       const response = await handler(request, { agent });

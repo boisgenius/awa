@@ -14,6 +14,7 @@ interface AgentListItem {
   wallet_public_key: string | null;
   created_at: string;
   claimed_at: string | null;
+  last_active_at: string | null;
 }
 
 interface AgentListResponse {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<AgentListR
     // Build query
     let query = supabase
       .from('agents')
-      .select('id, name, description, status, wallet_public_key, created_at, claimed_at');
+      .select('id, name, description, status, wallet_public_key, created_at, claimed_at, last_active_at');
 
     // Filter by status
     if (status === 'active') {

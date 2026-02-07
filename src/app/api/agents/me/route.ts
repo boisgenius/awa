@@ -5,7 +5,6 @@
 
 import {
   getAgentWithOwner,
-  updateAgentLastActive,
   getAgentPurchaseCount,
   getAgentRecentPurchases,
 } from '@/lib/agents';
@@ -56,9 +55,6 @@ export const GET = withAuth<AgentInfo>(
         403
       );
     }
-
-    // Update last active time (fire and forget)
-    updateAgentLastActive(agent.id).catch(console.error);
 
     // Get additional info in parallel
     const [agentWithOwner, purchaseCount, recentPurchases, balance] = await Promise.all([

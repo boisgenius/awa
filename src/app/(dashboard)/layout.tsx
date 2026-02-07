@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTokenData } from '@/lib/token/use-token-data';
@@ -22,6 +22,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const { data: tokenData, loading: tokenLoading } = useTokenData();
   const tokenAvailable = tokenData?.available;
 
+  const [showBanner, setShowBanner] = useState(true);
   const currentQuery = searchParams.get('q') || '';
 
   const handleSearch = useCallback(
@@ -54,12 +55,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* Announcement Bar */}
-      <div className="announcement">
-        🚀 Build skills for AI agents —{' '}
-        <Link href="/developers">Get early access to our developer platform →</Link>
-      </div>
-
       <div className="layout">
         {/* Sidebar */}
         <aside className="sidebar">
@@ -200,6 +195,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </nav>
+
+          {/* Developer CTA Banner */}
+          {showBanner && (
+            <div className="dev-cta-banner">
+              🚀 Build skills for AI agents —{' '}
+              <Link href="/developers">Get early access to our developer platform →</Link>
+              <button className="dev-cta-close" onClick={() => setShowBanner(false)}>✕</button>
+            </div>
+          )}
 
           {/* Page Content */}
           {children}
